@@ -39,6 +39,15 @@ class ChordSpec extends SpecDsl {
     }
 
     @Test
+    @DisplayName("given SPC or TAB as the key name then the chord parses like Emacs writes it")
+    void namedKeysParse() {
+        assertEquals(new Chord(false, true, false, ' '), Chord.parse("M-SPC"));
+        assertEquals(Chord.parse("M-SPC"), Chord.parse("alt SPACE"));
+        assertEquals(new Chord(true, false, false, '\t'), Chord.parse("C-TAB"));
+        assertNull(Chord.parse("SPC"));
+    }
+
+    @Test
     @DisplayName("given a cmap line then it parses into a chord binding")
     void cmapParsesIntoChordBinding() {
         Rc.Config c = Rc.parse(List.of("cmap control F forward-char"));
@@ -80,7 +89,21 @@ class ChordSpec extends SpecDsl {
         assertEquals("downcase-word", Chords.bindingFor(Chord.parse("M-l")).target());
         assertEquals("capitalize-word", Chords.bindingFor(Chord.parse("M-c")).target());
         assertEquals("kill-word", Chords.bindingFor(Chord.parse("M-d")).target());
-        assertEquals(18, Rc.chords().size());
+        assertEquals(31, Rc.chords().size());
+    }
+
+    @Test
+    @DisplayName("given the bundled defaults then the stock Emacs edit chords resolve")
+    void bundledEditChordsResolve() {
+        givenRc("");
+        assertEquals("meow-undo", Chords.bindingFor(Chord.parse("C-/")).command());
+        assertEquals("meow-undo", Chords.bindingFor(Chord.parse("C-_")).command());
+        assertEquals("meow-delete", Chords.bindingFor(Chord.parse("C-d")).command());
+        assertEquals("meow-kill", Chords.bindingFor(Chord.parse("C-k")).command());
+        assertEquals("meow-kill", Chords.bindingFor(Chord.parse("C-w")).command());
+        assertEquals("meow-save", Chords.bindingFor(Chord.parse("M-w")).command());
+        assertEquals("meow-yank", Chords.bindingFor(Chord.parse("C-y")).command());
+        assertEquals("meow-cancel-selection", Chords.bindingFor(Chord.parse("C-g")).command());
     }
 
     @Test
@@ -96,7 +119,7 @@ class ChordSpec extends SpecDsl {
     void homeIgnoreHandsChordBack() {
         givenRc("cmap C-f ignore");
         assertNull(Chords.bindingFor(Chord.parse("C-f")));
-        assertEquals(17, Rc.chords().size());
+        assertEquals(30, Rc.chords().size());
     }
 
     @Test

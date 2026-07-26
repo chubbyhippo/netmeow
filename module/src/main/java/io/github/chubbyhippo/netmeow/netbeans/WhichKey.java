@@ -23,10 +23,10 @@ import java.awt.Font;
 import java.awt.GridLayout;
 import java.awt.Point;
 import java.awt.Rectangle;
-import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Logger;
 import javax.swing.BorderFactory;
 import javax.swing.JLabel;
 import javax.swing.JLayeredPane;
@@ -38,10 +38,10 @@ import javax.swing.text.JTextComponent;
 
 final class WhichKey {
 
+    private static final Logger LOG = Logger.getLogger(WhichKey.class.getName());
     private static final int COLUMNS = 4;
     private static final int ROW_HEIGHT = 18;
     private static final int PADDING = 6;
-    private static final String GROUP_SUFFIX = "…";
 
     private static Timer pending;
     private static JPanel shown;
@@ -50,7 +50,10 @@ final class WhichKey {
 
     static void schedule(JTextComponent editor, String kind, String buffer) {
         cancelPending();
-        if (!Rc.whichKeyEnabled()) return;
+        if (!Rc.whichKeyEnabled()) {
+            LOG.info("netmeow: which-key disabled by rc");
+            return;
+        }
         pending =
                 new Timer(
                         Math.max(0, Rc.whichKeyDelayMs()),
@@ -82,9 +85,15 @@ final class WhichKey {
     private static void show(JTextComponent editor, String kind, String buffer) {
         hide();
         Map<String, String> entries = entriesFor(kind, buffer);
-        if (entries.isEmpty()) return;
+        if (entries.isEmpty()) {
+            LOG.info("netmeow: which-key has no entries for " + kind + " '" + buffer + "'");
+            return;
+        }
         JLayeredPane pane = layeredPane();
-        if (pane == null) return;
+        if (pane == null) {
+            LOG.info("netmeow: which-key found no layered pane");
+            return;
+        }
         Rectangle area = editorAreaIn(pane, editor);
         if (area == null) area = new Rectangle(0, 0, pane.getWidth(), pane.getHeight());
         if (area.width <= 0 || area.height <= 0) return;
@@ -97,27 +106,23 @@ final class WhichKey {
         pane.revalidate();
         pane.repaint();
         shown = panel;
+        LOG.info(
+                "netmeow: which-key showing "
+                        + entries.size()
+                        + " entries at "
+                        + panel.getBounds()
+                        + " in a pane of "
+                        + pane.getSize());
     }
 
     private static Map<String, String> entriesFor(String kind, String buffer) {
+        List<io.github.chubbyhippo.netmeow.core.WhichKey.Row> rows =
+                "things".equals(kind)
+                        ? io.github.chubbyhippo.netmeow.core.WhichKey.THINGS
+                        : io.github.chubbyhippo.netmeow.core.WhichKey.keypadRows(buffer);
         Map<String, String> out = new LinkedHashMap<>();
-        if (!"keypad".equals(kind)) return out;
-        Map<String, Rc.Binding> keypad = Rc.keypad();
-        Map<String, String> descriptions = Rc.keypadDescs();
-        List<String> sequences = new ArrayList<>(keypad.keySet());
-        sequences.sort(String::compareTo);
-        for (String sequence : sequences) {
-            if (!sequence.startsWith(buffer) || sequence.length() <= buffer.length()) continue;
-            String prefix = sequence.substring(0, buffer.length() + 1);
-            String key = prefix.substring(buffer.length());
-            if (out.containsKey(key)) continue;
-            boolean isGroup = sequence.length() > prefix.length();
-            String described = descriptions.get(prefix);
-            String label =
-                    described != null
-                            ? described
-                            : isGroup ? GROUP_SUFFIX : keypad.get(sequence).target();
-            out.put(key, label);
+        for (io.github.chubbyhippo.netmeow.core.WhichKey.Row row : rows) {
+            out.putIfAbsent(row.key(), row.label());
         }
         return out;
     }
@@ -166,9 +171,9 @@ final class WhichKey {
 
     private static Rectangle editorAreaIn(JLayeredPane pane, JTextComponent editor) {
         if (pane == null || editor == null || !editor.isShowing()) return null;
-        java.awt.Container host = editor.getParent();
-        java.awt.Component sized = host != null ? host : editor;
-        Point origin = SwingUtilities.convertPoint(sized, 0, 0, pane);
-        return new Rectangle(origin.x, origin.y, sized.getWidth(), sized.getHeight());
+        Rectangle visible = editor.getVisibleRect();
+        if (visible.isEmpty()) return null;
+        Point origin = SwingUtilities.convertPoint(editor, visible.x, visible.y, pane);
+        return new Rectangle(origin.x, origin.y, visible.width, visible.height);
     }
 }

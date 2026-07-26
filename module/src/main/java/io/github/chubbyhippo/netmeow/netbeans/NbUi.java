@@ -130,6 +130,16 @@ final class NbUi implements UiPort {
     }
 
     @Override
+    public void setGrabHighlight(EditorPort.OffsetRange range) {
+        if (editor == null) return;
+        if (range == null) {
+            GrabHighlight.clear(editor);
+            return;
+        }
+        GrabHighlight.show(editor, range.start(), range.end());
+    }
+
+    @Override
     public void clearAvy() {
         if (avy != null) avy.clear();
     }

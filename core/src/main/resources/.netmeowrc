@@ -178,6 +178,30 @@ cmap M-l downcase-word
 cmap M-c capitalize-word
 cmap M-d kill-word
 
+" stock-Emacs edit chords. Each maps onto the meow command that IS the Emacs
+" one (meow-semantics.md): meow-kill's no-selection fallback is meow-C-k, so
+" C-k kills the line and C-w the region through the same command; meow-save is
+" kill-ring-save; meow-cancel-selection is keyboard-quit; meow-delete is
+" delete-forward-char. These fire only outside INSERT, so the IDE keeps them
+" while you type.
+cmap C-/ meow-undo
+cmap C-_ meow-undo
+cmap C-d meow-delete
+cmap C-k meow-kill
+cmap C-w meow-kill
+cmap M-w meow-save
+cmap C-y meow-yank
+cmap C-g meow-cancel-selection
+
+" stock-Emacs whitespace and line chords. M-^ is meow-join + kill: the ledger
+" records that killing the join selection IS delete-indentation, so it needs no
+" command of its own.
+cmap M-m back-to-indentation
+cmap C-o open-line
+cmap M-\ delete-horizontal-space
+cmap M-SPC just-one-space
+cmap M-^ ms
+
 " ============================================================================
 " The keypad (SPC) table
 " ----------------------------------------------------------------------------

@@ -77,6 +77,13 @@ public class FakeUi implements UiPort {
     @Override
     public void showAvyLabels(List<UiPort.AvyLabel> labels) {}
 
+    public EditorPort.OffsetRange grabHighlight = null;
+
+    @Override
+    public void setGrabHighlight(EditorPort.OffsetRange range) {
+        grabHighlight = range;
+    }
+
     @Override
     public void clearAvy() {}
 

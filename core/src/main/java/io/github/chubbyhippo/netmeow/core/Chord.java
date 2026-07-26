@@ -44,7 +44,7 @@ public record Chord(boolean ctrl, boolean alt, boolean shift, char key) {
                 }
             }
         }
-        String key = tokens[tokens.length - 1];
+        String key = named(tokens[tokens.length - 1]);
         if (key.length() != 1 || (!ctrl && !alt)) return null;
         return new Chord(ctrl, alt, shift, Character.toLowerCase(key.charAt(0)));
     }
@@ -65,6 +65,7 @@ public record Chord(boolean ctrl, boolean alt, boolean shift, char key) {
             }
             rest = rest.substring(2);
         }
+        rest = named(rest);
         if (rest.length() != 1 || (!ctrl && !alt)) return null;
         char key = rest.charAt(0);
         if (Character.isUpperCase(key)) {
@@ -72,6 +73,14 @@ public record Chord(boolean ctrl, boolean alt, boolean shift, char key) {
             key = Character.toLowerCase(key);
         }
         return new Chord(ctrl, alt, shift, key);
+    }
+
+    private static String named(String key) {
+        return switch (key.toUpperCase(Locale.ROOT)) {
+            case "SPC", "SPACE" -> " ";
+            case "TAB" -> "\t";
+            default -> key;
+        };
     }
 
     public String spelling() {

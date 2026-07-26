@@ -46,6 +46,8 @@ public interface UiPort {
 
     void clearAvy();
 
+    void setGrabHighlight(EditorPort.OffsetRange range);
+
     record AvyLabel(int offset, String label) {}
 
     void modeChanged(MeowState st);
