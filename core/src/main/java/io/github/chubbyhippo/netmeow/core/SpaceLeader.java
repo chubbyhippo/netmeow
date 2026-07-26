@@ -1,0 +1,90 @@
+// Copyright (C) 2026 Chubby Hippo
+//
+// This program is free software: you can redistribute it and/or modify it
+// under the terms of the GNU General Public License as published by the Free
+// Software Foundation, either version 3 of the License, or (at your option)
+// any later version.
+//
+// This program is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
+// more details.
+//
+// You should have received a copy of the GNU General Public License along
+// with this program. If not, see <https://www.gnu.org/licenses/>.
+//
+// SPDX-License-Identifier: GPL-3.0-or-later
+package io.github.chubbyhippo.netmeow.core;
+
+import java.util.EnumSet;
+import java.util.List;
+import java.util.Set;
+
+public final class SpaceLeader {
+
+    public enum Surface {
+        TEXT_INPUT,
+        BUTTON,
+        COMBO,
+        CHECKBOX_LIST,
+        TOGGLING_TREE,
+        TERMINAL,
+        TREE,
+        TABLE,
+        PANEL,
+        OTHER
+    }
+
+    public enum Route {
+        KEYPAD,
+        PASS
+    }
+
+    private static final Set<Surface> SPACE_IS_NATIVE =
+            EnumSet.of(
+                    Surface.TEXT_INPUT,
+                    Surface.BUTTON,
+                    Surface.COMBO,
+                    Surface.CHECKBOX_LIST,
+                    Surface.TOGGLING_TREE,
+                    Surface.TERMINAL);
+
+    private static Object routed;
+
+    private SpaceLeader() {}
+
+    public static boolean nativeSpace(List<Surface> focusToRoot) {
+        return focusToRoot.stream().anyMatch(SPACE_IS_NATIVE::contains);
+    }
+
+    public static boolean arms(boolean menuOpen, boolean insideEditor, boolean nativeSpace) {
+        if (menuOpen) return true;
+        return !insideEditor && !nativeSpace;
+    }
+
+    public static boolean wantsKeys(MeowState st) {
+        return st.mode == MeowMode.KEYPAD || st.avy != null;
+    }
+
+    public static Route routeFor(MeowState st) {
+        return wantsKeys(st) ? Route.KEYPAD : Route.PASS;
+    }
+
+    public static void route(Object surface) {
+        routed = surface;
+    }
+
+    public static Object routedSurface() {
+        return routed;
+    }
+
+    public static Route consume(MeowState st) {
+        Route route = routeFor(st);
+        if (route == Route.PASS) reset();
+        return route;
+    }
+
+    public static void reset() {
+        routed = null;
+    }
+}

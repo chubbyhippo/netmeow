@@ -1,0 +1,430 @@
+" ============================================================================
+" .netmeowrc — THE default keymap of the netmeow plugin
+" ----------------------------------------------------------------------------
+" The plugin binds no keys in code: these lines ARE the default NORMAL/MOTION
+" layout (meow's suggested QWERTY), plus the SPC keypad <action> table of
+" Eclipse workbench command ids.
+" A ~/.netmeowrc overrides this file entry by entry — only the lines you
+" change matter; a deleted line falls back to the bundled default (bind
+" `ignore` to disable a key). Open it with SPC c m — the first press creates
+" ~/.netmeowrc as a full copy of this file; reload after editing with SPC c M.
+" Within this file, a later line for the same key wins.
+"
+" set which-key / nowhich-key toggles the popup, set timeoutlen=<ms> its delay.
+" set overlay-color / overlay-text-color / expand-hint-color / grab-color each
+" take a #RRGGBB and recolor the avy/ace jump labels, the 0-9 expand hints and
+" the grab highlight (see the block below).
+" ============================================================================
+
+set which-key
+set timeoutlen=300
+
+" Overlay colors — #RRGGBB, applied to both the light and dark themes. The two
+" label colors below sit at their defaults; expand-hint and grab are commented
+" so their built-in defaults stand — uncomment to pin your own.
+set overlay-color=#E52B50
+set overlay-text-color=#ffffff
+" set expand-hint-color=#2b5db2
+" set grab-color=#cde8cd
+
+" expand / counts
+nmap 0 meow-expand-0
+nmap 1 meow-expand-1
+nmap 2 meow-expand-2
+nmap 3 meow-expand-3
+nmap 4 meow-expand-4
+nmap 5 meow-expand-5
+nmap 6 meow-expand-6
+nmap 7 meow-expand-7
+nmap 8 meow-expand-8
+nmap 9 meow-expand-9
+nmap - meow-negative-argument
+
+" selections / things
+nmap ; meow-reverse
+nmap , meow-inner-of-thing
+nmap . meow-bounds-of-thing
+nmap [ meow-beginning-of-thing
+nmap ] meow-end-of-thing
+nmap < meow-beginning-of-thing
+nmap > meow-end-of-thing
+
+" the letter keys
+nmap a meow-append
+nmap A meow-open-below
+nmap b meow-back-word
+nmap B meow-back-symbol
+nmap c meow-change
+nmap d meow-delete
+nmap D meow-backward-delete
+nmap e meow-next-word
+nmap E meow-next-symbol
+nmap f meow-find
+nmap g meow-cancel-selection
+nmap G meow-grab
+nmap h meow-left
+nmap H meow-left-expand
+nmap i meow-insert
+nmap I meow-open-above
+nmap j meow-next
+nmap J meow-next-expand
+nmap k meow-prev
+nmap K meow-prev-expand
+nmap l meow-right
+nmap L meow-right-expand
+nmap m meow-join
+nmap n meow-search
+nmap o meow-block
+nmap O meow-to-block
+nmap p meow-yank
+nmap q meow-quit
+nmap Q avy-goto-line
+nmap r meow-replace
+nmap R meow-swap-grab
+nmap s meow-kill
+nmap S avy-goto-char-timer
+nmap t meow-till
+nmap u meow-undo
+nmap U meow-undo-in-selection
+nmap v meow-visit
+nmap w meow-mark-word
+nmap W meow-mark-symbol
+nmap x meow-line
+nmap X meow-goto-line
+nmap y meow-save
+nmap Y meow-sync-grab
+nmap z meow-pop-selection
+nmap ' repeat
+
+" MOTION mode — the keymap of workbench trees: j/k/h/l move, q hides the
+" view, every unmapped key keeps its native meaning
+mmap j meow-next
+mmap k meow-prev
+mmap h meow-left
+mmap l meow-right
+mmap q <action>(netmeow.hideView)
+
+" ── SPC keypad table ────────────────────────────────────────────────────────
+" SPC is the leader; these sequences dispatch Eclipse workbench commands.
+" SPC 1-9 = digit argument, SPC ? = cheatsheet, SPC / = describe-key
+" (handled in code).
+" SPC SPC: ace-click — label every clickable UI element, then pick one
+map <leader><Space> <action>(netmeow.aceClick)
+desc <leader><Space> ace-click
+
+desc <leader>x C-x · files / buffers / splits
+" f = goto-file: Eclipse's Open Resource dialog
+map <leader>xf <action>(org.eclipse.ui.navigate.openResource)
+map <leader>xj <action>(org.eclipse.ui.navigate.showIn(org.eclipse.ui.navigate.showIn.targetId=org.jkiss.dbeaver.core.projectExplorer))
+" SPC x z = C-x z: repeat the last command (then bare z keeps repeating)
+map <leader>xz repeat
+map <leader>xo <action>(netmeow.aceWindow)
+map <leader>xb <action>(org.eclipse.ui.window.openEditorDropDown)
+map <leader>xd <action>(org.eclipse.ui.views.showView(org.eclipse.ui.views.showView.viewId=org.jkiss.dbeaver.core.databaseNavigator))
+map <leader>xs <action>(org.eclipse.ui.file.save)
+map <leader>xk <action>(org.eclipse.ui.file.close)
+map <leader>x2 <action>(org-netbeans-core-multiview-SplitDocumentHorizontallyAction)
+map <leader>x3 <action>(org-netbeans-core-multiview-SplitDocumentVerticallyAction)
+
+desc <leader>xp C-x p · project
+map <leader>xpf <action>(org.eclipse.ui.navigate.openResource)
+map <leader>xpb <action>(org.eclipse.ui.window.openEditorDropDown)
+map <leader>xpg <action>(org.eclipse.search.ui.openFileSearchPage)
+
+desc <leader>xr C-x r · bookmarks
+map <leader>xrb <action>(org.eclipse.ui.views.showView(org.eclipse.ui.views.showView.viewId=org.eclipse.ui.views.BookmarkView))
+
+desc <leader>w window / splits / zoom
+map <leader>ww <action>(netmeow.aceWindow)
+map <leader>wW <action>(netmeow.aceSwapWindow)
+map <leader>wr <action>(netmeow.aceResize)
+map <leader>wn <action>(org.eclipse.ui.window.nextEditor)
+map <leader>wp <action>(org.eclipse.ui.window.previousEditor)
+map <leader>w. <action>(org.eclipse.ui.window.nextEditor)
+map <leader>w, <action>(org.eclipse.ui.window.previousEditor)
+map <leader>wh <action>(netmeow.windmoveLeft)
+map <leader>wj <action>(netmeow.windmoveDown)
+map <leader>wk <action>(netmeow.windmoveUp)
+map <leader>wl <action>(netmeow.windmoveRight)
+" v/s: split the editor side-by-side / stacked (run again to unsplit)
+map <leader>wv <action>(org-netbeans-core-multiview-SplitDocumentVerticallyAction)
+map <leader>ws <action>(org-netbeans-core-multiview-SplitDocumentHorizontallyAction)
+" zoom on SPC w i/o (no reset — Eclipse defines only zoomIn/zoomOut)
+map <leader>wi <action>(zoom-text-in)
+map <leader>w= <action>(zoom-text-in)
+map <leader>wo <action>(zoom-text-out)
+map <leader>w- <action>(zoom-text-out)
+
+desc <leader>e edit / folding
+map <leader>er <action>(expand-fold)
+map <leader>ea <action>(expand-all-folds)
+
+desc <leader>f find / format / new
+map <leader>fe <action>(org.eclipse.ui.navigate.showInQuickMenu)
+map <leader>ff <action>(org.eclipse.search.ui.openFileSearchPage)
+map <leader>fi <action>(org.eclipse.ui.edit.findReplace)
+map <leader>fm <action>(format)
+map <leader>fn <action>(org.eclipse.ui.file.newQuickMenu)
+map <leader>fo <action>(format)
+map <leader>fr <action>(org.eclipse.ui.window.openEditorDropDown)
+
+desc <leader>g goto / history
+map <leader>gh <action>(org-netbeans-modules-git-ui-history-SearchHistoryAction)
+
+desc <leader>h maximize editor (hide views)
+map <leader>h <action>(org-netbeans-modules-applemenu-MinimizeWindowAction)
+
+desc <leader>j jump
+map <leader>ji <action>(org.eclipse.ui.navigate.forwardHistory)
+
+desc <leader>k key bindings
+map <leader>k <action>(org-netbeans-modules-options-OptionsWindowAction)
+
+desc <leader>l local history
+
+" SPC c m / M — edit and reload ~/.netmeowrc; reload saves a dirty rc editor
+" first
+desc <leader>c C-c · commands / config
+map <leader>cf <action>(org.eclipse.ui.navigate.openResource)
+map <leader>cs <action>(org.eclipse.ui.file.saveAll)
+map <leader>ck <action>(org.eclipse.ui.file.close)
+map <leader>cr <action>(org.eclipse.search.ui.openFileSearchPage)
+map <leader>cm <action>(netmeow.editRc)
+map <leader>cM <action>(netmeow.reloadRc)
+
+desc <leader>cj C-c j · avy jump
+map <leader>cjw avy-goto-char-timer
+map <leader>cjc avy-goto-char-timer
+map <leader>cjl avy-goto-line
+
+" SPC m = M-: meta — m x Quick Access (Eclipse's M-x), m , = M-, go back,
+" m . = M-. goto declaration, m o / m g = the avy jumps on this prefix
+desc <leader>m M- · meta
+map <leader>mx <action>(org.eclipse.ui.window.quickAccess)
+map <leader>mo avy-goto-char-timer
+map <leader>m, <action>(org.eclipse.ui.navigate.backwardHistory)
+map <leader>m. <action>(org.jkiss.dbeaver.ui.editors.sql.navigate.object)
+map <leader>mg avy-goto-line
+" the M- word/edit chords mirrored onto the keypad so SPC m reaches them
+" too (SPC m f = M-f = forward-word): a/e sentence back/forward, b/f word
+" back/forward, c/u/l capitalize/upcase/downcase-word, d kill-word,
+" < / > buffer ends, { / } paragraph
+map <leader>ma backward-sentence
+map <leader>mb backward-word
+map <leader>mc capitalize-word
+map <leader>md kill-word
+map <leader>me forward-sentence
+map <leader>mf forward-word
+map <leader>ml downcase-word
+map <leader>mu upcase-word
+map <leader>m< beginning-of-buffer
+map <leader>m> end-of-buffer
+map <leader>m{ backward-paragraph
+map <leader>m} forward-paragraph
+
+desc <leader>ms M-s · search
+map <leader>msr <action>(org.eclipse.search.ui.openFileSearchPage)
+map <leader>msl <action>(org.eclipse.ui.edit.findReplace)
+map <leader>mss <action>(org.eclipse.ui.edit.findReplace)
+map <leader>msL <action>(org.eclipse.search.ui.openFileSearchPage)
+map <leader>mso <action>(org.jkiss.dbeaver.ui.editors.sql.show.outline)
+
+desc <leader>n new
+map <leader>nd <action>(org.jkiss.dbeaver.core.new.folder)
+map <leader>nf <action>(org.eclipse.ui.file.newQuickMenu)
+
+desc <leader>o open
+
+desc <leader>p popup / pin
+map <leader>pf <action>(org.eclipse.ui.navigate.openResource)
+map <leader>pm <action>(org.eclipse.ui.window.showContextMenu)
+map <leader>pp <action>(org.eclipse.ui.edit.text.contentAssist.contextInformation)
+
+desc <leader>q close editor tab
+map <leader>q <action>(org.eclipse.ui.file.close)
+
+desc <leader>r refactor / run
+map <leader>rr <action>(org.jkiss.dbeaver.ui.editors.sql.run.statement)
+map <leader>rs <action>(org.jkiss.dbeaver.ui.editors.sql.run.script)
+
+desc <leader>s search / show
+map <leader>sa <action>(org.eclipse.ui.window.quickAccess)
+map <leader>sf <action>(org.eclipse.ui.navigate.openResource)
+map <leader>sp <action>(org.eclipse.search.ui.performTextSearchWorkspace)
+map <leader>sr <action>(replace)
+map <leader>ss <action>(org.eclipse.ui.edit.findReplace)
+map <leader>sS <action>(org.jkiss.dbeaver.ui.editors.sql.show.outline)
+map <leader>sv <action>(netmeow.reloadRc)
+
+desc <leader>t toggle (result panel / wrap / whitespace)
+map <leader>tf <action>(org.eclipse.ui.window.fullscreenmode)
+
+desc <leader>; settings / UI
+map <leader>;f <action>(org.eclipse.ui.window.fullscreenmode)
+map <leader>;k <action>(org-netbeans-modules-options-OptionsWindowAction)
+map <leader>;l <action>(toggle-line-numbers)
+map <leader>;s <action>(org-netbeans-modules-options-OptionsWindowAction)
+
+desc <leader>a activate view
+map <leader>ac <action>(org.eclipse.ui.views.showView(org.eclipse.ui.views.showView.viewId=org.eclipse.ui.console.ConsoleView))
+map <leader>ad <action>(org.eclipse.ui.views.showView(org.eclipse.ui.views.showView.viewId=org.jkiss.dbeaver.core.databaseNavigator))
+map <leader>ap <action>(org.eclipse.ui.views.showView(org.eclipse.ui.views.showView.viewId=org.jkiss.dbeaver.core.projectExplorer))
+map <leader>aP <action>(org-netbeans-core-io-ui-IOWindowAction)
+map <leader>av <action>(org-netbeans-modules-git-ui-history-SearchHistoryAction)
+
+" SPC b — bookmarks: m sets a line bookmark, j opens the Bookmarks view
+desc <leader>b bookmark (m set / j jump)
+map <leader>bm <action>(org.eclipse.ui.edit.addBookmark)
+map <leader>bj <action>(org.eclipse.ui.views.showView(org.eclipse.ui.views.showView.viewId=org.eclipse.ui.views.BookmarkView))
+map <leader>bb <action>(org.eclipse.ui.window.openEditorDropDown)
+
+" SPC . / SPC , — next / prev annotation, tab, executed query
+desc <leader>. next (annotation / tab / query)
+map <leader>.e <action>(org.eclipse.ui.navigate.next)
+map <leader>.t <action>(org.eclipse.ui.window.nextEditor)
+desc <leader>, previous (annotation / tab / query)
+map <leader>,e <action>(org.eclipse.ui.navigate.previous)
+map <leader>,t <action>(org.eclipse.ui.window.previousEditor)
+
+" ============================================================================
+" Repeat groups — tap-to-continue transient maps
+" ----------------------------------------------------------------------------
+" After any binding whose TARGET is listed in a group below (membership is
+" the target, not the key), the next keypress is first looked up in that
+" group: a member key re-dispatches its target and keeps the run alive; any
+" other key (or ESC) ends the run and keeps its normal meaning — nothing is
+" swallowed, and there is no timeout. The entering keypad key needn't be a
+" member. So: SPC . e then . . , walks annotations; SPC w i then i i i keeps
+" zooming. Syntax:
+"   repeat <group> <key> <target>     target grammar = the map-line RHS
+"   repeat <group> <key> ignore       give a bundled group's key back
+" ============================================================================
+repeat error . <action>(org.eclipse.ui.navigate.next)
+repeat error , <action>(org.eclipse.ui.navigate.previous)
+repeat zoom i <action>(org.eclipse.ui.edit.text.zoomIn)
+repeat zoom = <action>(org.eclipse.ui.edit.text.zoomIn)
+repeat zoom o <action>(org.eclipse.ui.edit.text.zoomOut)
+repeat zoom - <action>(org.eclipse.ui.edit.text.zoomOut)
+repeat tab n <action>(org.eclipse.ui.window.nextEditor)
+repeat tab p <action>(org.eclipse.ui.window.previousEditor)
+repeat tab . <action>(org.eclipse.ui.window.nextEditor)
+repeat tab , <action>(org.eclipse.ui.window.previousEditor)
+
+" Emacs C-x z: after repeat (SPC x z or '), bare z keeps repeating
+repeat replay z repeat
+
+" ----------------------------------------------------------------------------
+" the Emacs modifier-chord layer: 18 chords that work outside INSERT.
+" An unbound chord stays the IDE's. To hand one back, map it to `ignore`:
+"   cmap C-f ignore
+" ----------------------------------------------------------------------------
+cmap C-f forward-char
+cmap C-b backward-char
+cmap C-n next-line
+cmap C-p previous-line
+cmap C-a move-beginning-of-line
+cmap C-e move-end-of-line
+cmap M-f forward-word
+cmap M-b backward-word
+cmap M-a backward-sentence
+cmap M-e forward-sentence
+cmap M-< beginning-of-buffer
+cmap M-> end-of-buffer
+cmap M-{ backward-paragraph
+cmap M-} forward-paragraph
+cmap M-u upcase-word
+cmap M-l downcase-word
+cmap M-c capitalize-word
+cmap M-d kill-word
+
+" readable which-key labels for the remapped slots
+desc <leader>;k keymap
+desc <leader>;l line numbers
+desc <leader>;s settings
+desc <leader>aP output
+desc <leader>av history
+desc <leader>ea expand all folds
+desc <leader>er expand fold
+desc <leader>fm format
+desc <leader>fo format
+desc <leader>gh file history
+desc <leader>sr replace
+desc <leader>w- zoom out
+desc <leader>w= zoom in
+desc <leader>wi zoom in
+desc <leader>wo zoom out
+desc <leader>ws split right
+desc <leader>wv split down
+desc <leader>x2 split right
+desc <leader>x3 split down
+
+" SPC r e — refactoring, the ideameow slot rendered as a group
+desc <leader>re refactor
+
+" refactoring: ideameow slot letters where NetBeans has the action
+map <leader>ei <action>(org-netbeans-modules-refactoring-java-api-ui-ExtractInterfaceAction)
+desc <leader>ei extract interface
+map <leader>ep <action>(org-netbeans-modules-refactoring-java-api-ui-IntroduceParameterAction)
+desc <leader>ep introduce parameter
+map <leader>ip <action>(org-netbeans-modules-refactoring-java-api-ui-IntroduceParameterAction)
+desc <leader>ip introduce parameter
+map <leader>il <action>(org-netbeans-modules-refactoring-java-api-ui-InlineAction)
+desc <leader>il inline
+map <leader>in <action>(org-netbeans-modules-refactoring-java-api-ui-InlineAction)
+desc <leader>in inline
+map <leader>rn <action>(org-netbeans-modules-refactoring-api-ui-RenameAction)
+desc <leader>rn rename
+
+" SPC r e — the full NetBeans refactoring set
+desc <leader>re refactor
+map <leader>rer <action>(org-netbeans-modules-refactoring-api-ui-RenameAction)
+desc <leader>rer rename
+map <leader>reu <action>(org-netbeans-modules-refactoring-api-ui-WhereUsedAction)
+desc <leader>reu where used
+map <leader>rem <action>(org-netbeans-modules-refactoring-api-ui-MoveAction)
+desc <leader>rem move
+map <leader>rec <action>(org-netbeans-modules-refactoring-api-ui-CopyAction)
+desc <leader>rec copy
+map <leader>red <action>(org-netbeans-modules-refactoring-api-ui-SafeDeleteAction)
+desc <leader>red safe delete
+map <leader>rep <action>(org-netbeans-modules-refactoring-java-api-ui-ChangeParametersAction)
+desc <leader>rep change parameters
+map <leader>ref <action>(org-netbeans-modules-refactoring-java-api-ui-EncapsulateFieldAction)
+desc <leader>ref encapsulate field
+map <leader>rei <action>(org-netbeans-modules-refactoring-java-api-ui-ExtractInterfaceAction)
+desc <leader>rei extract interface
+map <leader>res <action>(org-netbeans-modules-refactoring-java-api-ui-ExtractSuperclassAction)
+desc <leader>res extract superclass
+map <leader>rel <action>(org-netbeans-modules-refactoring-java-api-ui-InlineAction)
+desc <leader>rel inline
+map <leader>reU <action>(org-netbeans-modules-refactoring-java-api-ui-PullUpAction)
+desc <leader>reU pull up
+map <leader>reD <action>(org-netbeans-modules-refactoring-java-api-ui-PushDownAction)
+desc <leader>reD push down
+map <leader>reS <action>(org-netbeans-modules-refactoring-java-api-ui-UseSuperTypeAction)
+desc <leader>reS use supertype
+map <leader>reo <action>(org-netbeans-modules-refactoring-java-api-ui-InnerToOuterAction)
+desc <leader>reo inner to outer
+map <leader>ree <action>(org-netbeans-modules-refactoring-java-api-ui-IntroduceParameterAction)
+desc <leader>ree introduce parameter
+map <leader>rex <action>(org-netbeans-modules-refactoring-java-api-ui-IntroduceLocalExtensionAction)
+desc <leader>rex introduce local extension
+
+" SPC o — open, transferred from ideameow
+desc <leader>o open / imports / terminal
+map <leader>oe <action>(org-netbeans-core-ui-sysopen-OpenParentInSystemAction)
+desc <leader>oe reveal in finder
+map <leader>oE <action>(org-netbeans-core-ui-sysopen-OpenInSystemAction)
+desc <leader>oE open with system app
+map <leader>of <action>(org-netbeans-modules-openfile-OpenFileAction)
+desc <leader>of open file
+map <leader>oP <action>(org-netbeans-modules-openfile-OpenFileAction)
+desc <leader>oP open file
+map <leader>oi <action>(fix-imports)
+desc <leader>oi fix imports
+map <leader>om <action>(org-netbeans-modules-editor-codegen-NbGenerateCodeAction$GlobalAction)
+desc <leader>om generate code
+map <leader>or <action>(org-netbeans-modules-project-ui-RecentProjects)
+desc <leader>or recent projects
+map <leader>ot <action>(org-netbeans-modules-dlight-terminal-action-OpenInTerminalAction)
+desc <leader>ot open in terminal

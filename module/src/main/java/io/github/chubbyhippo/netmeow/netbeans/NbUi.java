@@ -1,0 +1,158 @@
+// Copyright (C) 2026 Chubby Hippo
+//
+// This program is free software: you can redistribute it and/or modify it
+// under the terms of the GNU General Public License as published by the Free
+// Software Foundation, either version 3 of the License, or (at your option)
+// any later version.
+//
+// This program is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
+// more details.
+//
+// You should have received a copy of the GNU General Public License along
+// with this program. If not, see <https://www.gnu.org/licenses/>.
+//
+// SPDX-License-Identifier: GPL-3.0-or-later
+package io.github.chubbyhippo.netmeow.netbeans;
+
+import io.github.chubbyhippo.netmeow.core.EditorPort;
+import io.github.chubbyhippo.netmeow.core.MeowState;
+import io.github.chubbyhippo.netmeow.core.UiPort;
+import java.util.ArrayList;
+import java.util.List;
+import javax.swing.text.JTextComponent;
+import org.netbeans.api.editor.StickyWindowSupport;
+import org.openide.DialogDisplayer;
+import org.openide.NotifyDescriptor;
+import org.openide.awt.StatusDisplayer;
+
+final class NbUi implements UiPort {
+
+    private final JTextComponent editor;
+    private OverlayCanvas avy;
+    private OverlayCanvas hints;
+
+    NbUi(JTextComponent editor) {
+        this.editor = editor;
+    }
+
+    @Override
+    public void hint(String text) {
+        StatusDisplayer.getDefault().setStatusText(text);
+    }
+
+    @Override
+    public void info(String title, String body) {
+        NotifyDescriptor descriptor =
+                new NotifyDescriptor.Message(body, NotifyDescriptor.INFORMATION_MESSAGE);
+        descriptor.setTitle(title);
+        DialogDisplayer.getDefault().notifyLater(descriptor);
+    }
+
+    @Override
+    public String input(String prompt, String initial) {
+        NotifyDescriptor.InputLine line =
+                new NotifyDescriptor.InputLine(
+                        prompt,
+                        prompt,
+                        NotifyDescriptor.OK_CANCEL_OPTION,
+                        NotifyDescriptor.PLAIN_MESSAGE);
+        if (initial != null) line.setInputText(initial);
+        Object answer = DialogDisplayer.getDefault().notify(line);
+        return answer == NotifyDescriptor.OK_OPTION ? line.getInputText() : null;
+    }
+
+    @Override
+    public void runCommand(String id) {
+        if (Commands.run(id)) return;
+        if (!NbActions.invoke(id)) {
+            hint("netmeow: no action for " + id);
+        }
+    }
+
+    @Override
+    public void scheduleWhichKey(String kind, String buffer) {
+        WhichKey.schedule(editor, kind, buffer);
+    }
+
+    @Override
+    public void hideWhichKey() {
+        WhichKey.hide();
+    }
+
+    @Override
+    public void showExpandHints(List<Integer> positions) {
+        List<OverlayCanvas.Label> labels = new ArrayList<>();
+        for (int i = 0; i < positions.size(); i++) {
+            labels.add(new OverlayCanvas.Label(positions.get(i), Integer.toString(i)));
+        }
+        hintCanvas().show(labels, List.of(), true);
+    }
+
+    @Override
+    public void clearExpandHints() {
+        if (hints != null) hints.clear();
+    }
+
+    @Override
+    public void showAvyMatches(List<EditorPort.OffsetRange> matches) {
+        List<int[]> boxes = new ArrayList<>();
+        for (EditorPort.OffsetRange range : matches) {
+            boxes.add(new int[] {range.start(), range.end()});
+        }
+        avyCanvas().show(List.of(), boxes, false);
+    }
+
+    @Override
+    public void showAvyLabels(List<AvyLabel> labels) {
+        List<OverlayCanvas.Label> painted = new ArrayList<>();
+        for (AvyLabel label : labels) {
+            painted.add(new OverlayCanvas.Label(label.offset(), label.label()));
+        }
+        avyCanvas().show(painted, List.of(), false);
+    }
+
+    @Override
+    public void clearAvy() {
+        if (avy != null) avy.clear();
+    }
+
+    @Override
+    public void modeChanged(MeowState st) {
+        ModeWidget.setMode(st.mode.name());
+        Carets.apply(editor, st.mode);
+    }
+
+    @Override
+    public void refresh(MeowState st) {
+        ModeWidget.setMode(st.mode.name());
+    }
+
+    private OverlayCanvas avyCanvas() {
+        if (avy == null) avy = mount();
+        return avy;
+    }
+
+    private OverlayCanvas hintCanvas() {
+        if (hints == null) hints = mount();
+        return hints;
+    }
+
+    private OverlayCanvas mount() {
+        OverlayCanvas canvas = new OverlayCanvas(editor);
+        StickyWindowSupport sticky = Editors.sticky(editor);
+        if (sticky != null) {
+            canvas.syncBounds();
+            sticky.addWindow(canvas);
+        }
+        return canvas;
+    }
+
+    void detach() {
+        StickyWindowSupport sticky = Editors.sticky(editor);
+        if (sticky == null) return;
+        if (avy != null) sticky.removeWindow(avy);
+        if (hints != null) sticky.removeWindow(hints);
+    }
+}
