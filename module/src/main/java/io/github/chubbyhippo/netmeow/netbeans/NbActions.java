@@ -16,19 +16,29 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 package io.github.chubbyhippo.netmeow.netbeans;
 
+import java.awt.Rectangle;
 import java.awt.event.ActionEvent;
-import java.util.ArrayList;
+import java.awt.geom.Rectangle2D;
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import javax.swing.Action;
+import javax.swing.JMenu;
+import javax.swing.JMenuItem;
+import javax.swing.JPopupMenu;
+import javax.swing.text.BadLocationException;
 import javax.swing.text.JTextComponent;
 import org.openide.awt.Actions;
 import org.openide.filesystems.FileObject;
 import org.openide.filesystems.FileUtil;
+import org.openide.util.ContextAwareAction;
+import org.openide.util.Utilities;
+import org.openide.util.actions.Presenter;
 
 final class NbActions {
 
+    private static final Logger LOG = Logger.getLogger(NbActions.class.getName());
     private static final String ACTIONS_FOLDER = "Actions";
     private static final String INSTANCE = ".instance";
 
@@ -37,20 +47,67 @@ final class NbActions {
     private NbActions() {}
 
     static boolean invoke(String category, String id) {
-        Action action = Actions.forID(category, id);
-        if (action == null) return false;
-        action.actionPerformed(new ActionEvent(NbActions.class, ActionEvent.ACTION_PERFORMED, id));
+        String fullyQualified = ActionIds.fullyQualified(id);
+        if (!ActionIds.isFullyQualified(fullyQualified)) return false;
+        Action prototype = Actions.forID(category, fullyQualified);
+        if (prototype == null) return false;
+        if (showSubmenuAtCaret(prototype)) return true;
+        Action action = inCurrentContext(prototype);
+        action.actionPerformed(
+                new ActionEvent(NbActions.class, ActionEvent.ACTION_PERFORMED, fullyQualified));
         return true;
     }
 
-    static boolean invoke(String spec) {
-        int slash = spec.indexOf('/');
-        if (slash > 0) {
-            return invoke(spec.substring(0, slash), spec.substring(slash + 1));
+    private static Action inCurrentContext(Action action) {
+        if (!(action instanceof ContextAwareAction contextAware)) return action;
+        Action bound = contextAware.createContextAwareInstance(Utilities.actionsGlobalContext());
+        return bound != null ? bound : action;
+    }
+
+    private static boolean showSubmenuAtCaret(Action action) {
+        JMenu submenu = submenuOf(action);
+        if (submenu == null) return false;
+        JTextComponent editor = Editors.focused();
+        if (editor == null) return false;
+        JPopupMenu popup = submenu.getPopupMenu();
+        if (popup.getComponentCount() == 0) return false;
+        Rectangle caret = caretBounds(editor);
+        popup.show(editor, caret.x, caret.y + caret.height);
+        return true;
+    }
+
+    private static JMenu submenuOf(Action action) {
+        JMenuItem presenter = null;
+        if (action instanceof Presenter.Popup popup) presenter = popup.getPopupPresenter();
+        else if (action instanceof Presenter.Menu menu) presenter = menu.getMenuPresenter();
+        return presenter instanceof JMenu submenu ? submenu : null;
+    }
+
+    private static Rectangle caretBounds(JTextComponent editor) {
+        try {
+            Rectangle2D view = editor.modelToView2D(editor.getCaretPosition());
+            if (view != null) {
+                return new Rectangle(
+                        (int) view.getX(),
+                        (int) view.getY(),
+                        (int) view.getWidth(),
+                        (int) view.getHeight());
+            }
+        } catch (BadLocationException caretMovedAway) {
+            LOG.log(Level.FINE, "caret is gone", caretMovedAway);
         }
-        String category = index().get(spec);
-        if (category != null) return invoke(category, spec);
+        return new Rectangle(0, 0, 0, 0);
+    }
+
+    static boolean invoke(String spec) {
+        String id = ActionIds.fullyQualified(spec);
+        String category = index().get(id);
+        if (category != null) return invoke(category, id);
         return invokeEditorAction(spec);
+    }
+
+    static String categoryOf(String spec) {
+        return index().get(ActionIds.fullyQualified(spec));
     }
 
     private static boolean invokeEditorAction(String name) {
@@ -62,34 +119,32 @@ final class NbActions {
         return true;
     }
 
-    static List<String> catalogue() {
-        List<String> out = new ArrayList<>();
-        index().forEach((id, category) -> out.add(category + "/" + id));
-        out.sort(String::compareTo);
-        return out;
-    }
-
-    static String categoryOf(String id) {
-        return index().get(id);
-    }
-
     private static synchronized Map<String, String> index() {
         if (categoryById != null) return categoryById;
         Map<String, String> found = new LinkedHashMap<>();
         FileObject actions = FileUtil.getConfigFile(ACTIONS_FOLDER);
-        if (actions != null) {
-            for (FileObject category : actions.getChildren()) {
-                if (!category.isFolder()) continue;
-                for (FileObject entry : category.getChildren()) {
-                    String name = entry.getNameExt();
-                    if (!name.endsWith(INSTANCE)) continue;
-                    String id =
-                            name.substring(0, name.length() - INSTANCE.length()).replace('-', '.');
-                    found.putIfAbsent(id, category.getNameExt());
-                }
-            }
-        }
+        if (actions != null) indexCategory(actions, "", found);
         categoryById = found;
         return categoryById;
+    }
+
+    private static void indexCategory(
+            FileObject folder, String category, Map<String, String> found) {
+        for (FileObject entry : folder.getChildren()) {
+            if (entry.isFolder()) {
+                indexCategory(entry, nest(category, entry.getNameExt()), found);
+                continue;
+            }
+            if (category.isEmpty()) continue;
+            String name = entry.getNameExt();
+            if (!name.endsWith(INSTANCE)) continue;
+            String id =
+                    ActionIds.fullyQualified(name.substring(0, name.length() - INSTANCE.length()));
+            found.putIfAbsent(id, category);
+        }
+    }
+
+    private static String nest(String category, String child) {
+        return category.isEmpty() ? child : category + "/" + child;
     }
 }

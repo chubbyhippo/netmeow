@@ -197,7 +197,7 @@ class RcSpec extends SpecDsl {
     @Test
     @DisplayName("overlay colors layer user over the bundled default")
     void overlayColorsLayerUserOverBundled() {
-        assertEquals(new Rc.Rgb(0xE5, 0x2B, 0x50), Rc.overlayColor());
+        assertEquals(new Rc.Rgb(0x2E, 0xCC, 0x71), Rc.overlayColor());
         givenRc("set overlay-color=#010203\nset grab-color=#040506");
         assertEquals(new Rc.Rgb(0x01, 0x02, 0x03), Rc.overlayColor());
         assertEquals(new Rc.Rgb(0x04, 0x05, 0x06), Rc.grabColor());
@@ -239,7 +239,7 @@ class RcSpec extends SpecDsl {
         assertEquals("netmeow.aceResize", d.keypad.get("wr").action());
         assertEquals("netmeow.editRc", d.keypad.get("cm").action());
         assertEquals("netmeow.reloadRc", d.keypad.get("cM").action());
-        assertEquals("org.eclipse.ui.navigate.backwardHistory", d.keypad.get("m,").action());
+        assertEquals("jump-list-last-edit", d.keypad.get("m,").action());
         assertTrue(d.keypad.size() > 25, "keypad table (got " + d.keypad.size() + ")");
     }
 

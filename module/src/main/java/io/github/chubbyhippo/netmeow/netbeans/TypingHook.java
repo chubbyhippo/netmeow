@@ -18,11 +18,14 @@ package io.github.chubbyhippo.netmeow.netbeans;
 
 import io.github.chubbyhippo.netmeow.core.Engine;
 import io.github.chubbyhippo.netmeow.core.MeowMode;
+import java.util.logging.Logger;
 import org.netbeans.api.editor.mimelookup.MimePath;
 import org.netbeans.api.editor.mimelookup.MimeRegistration;
 import org.netbeans.spi.editor.typinghooks.TypedTextInterceptor;
 
 public final class TypingHook implements TypedTextInterceptor {
+
+    private static final Logger LOG = Logger.getLogger(TypingHook.class.getName());
 
     @Override
     public boolean beforeInsert(Context context) {
@@ -30,7 +33,19 @@ public final class TypingHook implements TypedTextInterceptor {
         if (session.state.mode == MeowMode.INSERT) return false;
         String typed = context.getText();
         if (typed == null || typed.length() != 1) return false;
-        Engine.handleChar(session.ctx, typed.charAt(0));
+        char key = typed.charAt(0);
+        MeowMode before = session.state.mode;
+        Engine.handleChar(session.ctx, key);
+        if (before == MeowMode.KEYPAD || session.state.mode == MeowMode.KEYPAD) {
+            LOG.info(
+                    "netmeow: keypad '"
+                            + key
+                            + "' buffer="
+                            + session.state.keypad
+                            + " mode="
+                            + session.state.mode);
+        }
+        AvyTimer.afterKey(session.ctx, session.state);
         return true;
     }
 

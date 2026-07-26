@@ -16,15 +16,20 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 package io.github.chubbyhippo.netmeow.netbeans;
 
+import io.github.chubbyhippo.netmeow.core.Rc;
 import io.github.chubbyhippo.netmeow.core.Windmove.Dir;
+import java.awt.Component;
 import java.awt.Rectangle;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
+import java.util.function.Predicate;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.swing.SwingUtilities;
@@ -41,6 +46,7 @@ final class Commands {
 
     private static final Logger LOG = Logger.getLogger(Commands.class.getName());
     private static final Map<String, Consumer<JTextComponent>> BY_ID = new LinkedHashMap<>();
+    private static final Map<String, Predicate<Component>> BY_TREE_ID = new LinkedHashMap<>();
 
     static {
         BY_ID.put("netmeow.windmoveLeft", editor -> focusDirection(editor, Dir.LEFT));
@@ -50,10 +56,14 @@ final class Commands {
         BY_ID.put("netmeow.reloadRc", editor -> say(RcFiles.load()));
         BY_ID.put("netmeow.editRc", Commands::openUserRc);
         BY_ID.put("netmeow.hideView", Commands::hideActiveView);
-        BY_ID.put("netmeow.aceWindow", editor -> notWiredYet("ace-window"));
-        BY_ID.put("netmeow.aceSwapWindow", editor -> notWiredYet("ace-swap-window"));
-        BY_ID.put("netmeow.aceResize", editor -> notWiredYet("ace-resize"));
-        BY_ID.put("netmeow.aceClick", editor -> notWiredYet("ace-click"));
+        BY_ID.put("netmeow.aceWindow", editor -> AceWindows.run(AceWindows.Move.FOCUS));
+        BY_ID.put("netmeow.aceSwapWindow", editor -> AceWindows.run(AceWindows.Move.SWAP));
+        BY_ID.put("netmeow.aceResize", editor -> AceResizes.run());
+        BY_ID.put("netmeow.aceClick", editor -> AceClicks.run());
+        BY_TREE_ID.put("netmeow.tree.focusDown", Trees::focusDown);
+        BY_TREE_ID.put("netmeow.tree.focusUp", Trees::focusUp);
+        BY_TREE_ID.put("netmeow.tree.expand", Trees::expand);
+        BY_TREE_ID.put("netmeow.tree.collapse", Trees::collapse);
     }
 
     private Commands() {}
@@ -66,8 +76,13 @@ final class Commands {
         return true;
     }
 
-    static boolean handles(String id) {
-        return BY_ID.containsKey(id);
+    static void runOn(String id, Component target) {
+        Predicate<Component> onTree = BY_TREE_ID.get(id);
+        if (onTree != null) {
+            onTree.test(target);
+            return;
+        }
+        if (!run(id)) NbActions.invoke(id);
     }
 
     private static void focusDirection(JTextComponent from, Dir dir) {
@@ -87,13 +102,13 @@ final class Commands {
     }
 
     private static JTextComponent nearestIn(JTextComponent from, Dir dir) {
-        Rectangle origin = screenBounds(from);
+        Rectangle origin = Editors.screenBounds(from);
         if (origin == null) return null;
         JTextComponent best = null;
         int bestDistance = Integer.MAX_VALUE;
         for (JTextComponent candidate : EditorRegistry.componentList()) {
             if (candidate == from || !candidate.isShowing()) continue;
-            Rectangle other = screenBounds(candidate);
+            Rectangle other = Editors.screenBounds(candidate);
             if (other == null || !facing(origin, other, dir)) continue;
             int distance = gap(origin, other, dir);
             if (distance < bestDistance) {
@@ -122,17 +137,14 @@ final class Commands {
         };
     }
 
-    private static Rectangle screenBounds(JTextComponent component) {
-        if (!component.isShowing()) return null;
-        Rectangle bounds = new Rectangle(component.getSize());
-        bounds.setLocation(component.getLocationOnScreen());
-        return bounds;
-    }
-
     private static void openUserRc(JTextComponent editor) {
         Path path = RcFiles.userRc();
         try {
-            if (!Files.exists(path)) Files.createFile(path);
+            if (!Files.exists(path)) {
+                Files.write(path, Rc.bundledLines(), StandardCharsets.UTF_8);
+            } else if (Files.size(path) == 0) {
+                Files.write(path, Rc.bundledLines(), StandardCharsets.UTF_8);
+            }
             FileObject file = FileUtil.toFileObject(FileUtil.normalizeFile(path.toFile()));
             if (file == null) {
                 say("netmeow: could not open " + path);
@@ -162,15 +174,13 @@ final class Commands {
         active.close();
     }
 
-    private static void notWiredYet(String what) {
-        say("netmeow: " + what + " is not wired yet");
-    }
-
     private static void say(String message) {
         StatusDisplayer.getDefault().setStatusText(message);
     }
 
     static List<String> ids() {
-        return List.copyOf(BY_ID.keySet());
+        List<String> all = new ArrayList<>(BY_ID.keySet());
+        all.addAll(BY_TREE_ID.keySet());
+        return List.copyOf(all);
     }
 }

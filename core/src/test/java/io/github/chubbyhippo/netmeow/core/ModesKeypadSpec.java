@@ -174,7 +174,7 @@ class ModesKeypadSpec extends SpecDsl {
         given("word", "<caret>hello");
         whenKeys(" xs");
         thenMode(MeowMode.NORMAL);
-        assertEquals(List.of("org.eclipse.ui.file.save"), ui.ran);
+        assertEquals(List.of("org-openide-actions-SaveAllAction"), ui.ran);
     }
 
     @Test

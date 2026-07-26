@@ -18,6 +18,10 @@ package io.github.chubbyhippo.netmeow.netbeans;
 
 import io.github.chubbyhippo.netmeow.core.Rc;
 import java.awt.Color;
+import java.awt.Component;
+import java.awt.KeyboardFocusManager;
+import java.awt.Rectangle;
+import javax.swing.SwingUtilities;
 import javax.swing.text.JTextComponent;
 import org.netbeans.api.editor.EditorRegistry;
 import org.netbeans.api.editor.StickyWindowSupport;
@@ -29,8 +33,22 @@ final class Editors {
     private Editors() {}
 
     static JTextComponent focused() {
+        JTextComponent owning = editorAt(focusOwner());
+        if (owning != null) return owning;
         JTextComponent focused = EditorRegistry.focusedComponent();
         return focused != null ? focused : EditorRegistry.lastFocusedComponent();
+    }
+
+    static JTextComponent editorAt(Component focus) {
+        if (focus == null) return null;
+        for (JTextComponent candidate : EditorRegistry.componentList()) {
+            if (SwingUtilities.isDescendingFrom(focus, candidate)) return candidate;
+        }
+        return null;
+    }
+
+    static Component focusOwner() {
+        return KeyboardFocusManager.getCurrentKeyboardFocusManager().getFocusOwner();
     }
 
     static StickyWindowSupport sticky(JTextComponent component) {
@@ -44,5 +62,12 @@ final class Editors {
 
     static Color toColor(Rc.Rgb rgb) {
         return new Color(rgb.r(), rgb.g(), rgb.b());
+    }
+
+    static Rectangle screenBounds(JTextComponent component) {
+        if (component == null || !component.isShowing()) return null;
+        Rectangle bounds = new Rectangle(component.getSize());
+        bounds.setLocation(component.getLocationOnScreen());
+        return bounds;
     }
 }

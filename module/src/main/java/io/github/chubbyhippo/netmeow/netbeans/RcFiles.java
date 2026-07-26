@@ -23,8 +23,16 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import org.openide.cookies.EditorCookie;
+import org.openide.filesystems.FileObject;
+import org.openide.filesystems.FileUtil;
+import org.openide.loaders.DataObject;
 
 final class RcFiles {
+
+    private static final Logger LOG = Logger.getLogger(RcFiles.class.getName());
 
     private RcFiles() {}
 
@@ -32,7 +40,19 @@ final class RcFiles {
         return Paths.get(System.getProperty("user.home"), Rc.FILE_NAME);
     }
 
+    private static void flushUnsavedRc() {
+        FileObject file = FileUtil.toFileObject(FileUtil.normalizeFile(userRc().toFile()));
+        if (file == null) return;
+        try {
+            EditorCookie cookie = DataObject.find(file).getLookup().lookup(EditorCookie.class);
+            if (cookie != null && cookie.isModified()) cookie.saveDocument();
+        } catch (IOException rcCouldNotBeSaved) {
+            LOG.log(Level.FINE, "could not save the rc before reloading", rcCouldNotBeSaved);
+        }
+    }
+
     static String load() {
+        flushUnsavedRc();
         Path path = userRc();
         if (!Files.isReadable(path)) {
             Rc.setUserLines(List.of());

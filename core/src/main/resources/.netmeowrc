@@ -1,19 +1,42 @@
 " ============================================================================
 " .netmeowrc — THE default keymap of the netmeow plugin
 " ----------------------------------------------------------------------------
-" The plugin binds no keys in code: these lines ARE the default NORMAL/MOTION
-" layout (meow's suggested QWERTY), plus the SPC keypad <action> table of
-" Eclipse workbench command ids.
-" A ~/.netmeowrc overrides this file entry by entry — only the lines you
-" change matter; a deleted line falls back to the bundled default (bind
-" `ignore` to disable a key). Open it with SPC c m — the first press creates
-" ~/.netmeowrc as a full copy of this file; reload after editing with SPC c M.
+" The plugin binds no keys in code: this file defines every default — the
+" NORMAL/MOTION layout, the Emacs chord layer and the whole SPC keypad table —
+" and ships bundled inside the module jar. A ~/.netmeowrc in your home
+" directory overrides it entry by entry — only the lines you change matter; a
+" deleted line falls back to the bundled default (bind `ignore` to disable a
+" key). Open it with SPC c m — the first press creates ~/.netmeowrc as a full
+" copy of this file; reload after editing with SPC c M.
 " Within this file, a later line for the same key wins.
 "
-" set which-key / nowhich-key toggles the popup, set timeoutlen=<ms> its delay.
-" set overlay-color / overlay-text-color / expand-hint-color / grab-color each
-" take a #RRGGBB and recolor the avy/ace jump labels, the 0-9 expand hints and
-" the grab highlight (see the block below).
+" Syntax:
+"   nmap <key> <action>(ActionId)      NORMAL-mode key -> IDE action
+"   nmap <key> <meow-command>          NORMAL-mode key -> named meow command
+"   nmap <key> <meow keys>             NORMAL-mode key -> replayed meow keys
+"   nnoremap ...                       like nmap, but the RHS resolves through
+"                                      these bundled defaults
+"   mmap / mnoremap <key> <target>     the same, for MOTION mode (the keymap of
+"                                      workbench trees)
+"   cmap / cnoremap <chord> <target>   the Emacs modifier-chord layer
+"   map <leader><seq> <target>         keypad (SPC) entry
+"   desc <leader><seq> <text>          which-key label for an entry or a group
+"   set timeoutlen=300                 which-key popup delay in ms
+"   set nowhich-key                    turn the which-key popup off
+"   set overlay-color=#2ECC71          avy/ace label background (#RRGGBB)
+"   set overlay-text-color=#ffffff     avy/ace label text
+"   set expand-hint-color=#2b5db2      0-9 expand-hint color
+"   set grab-color=#cde8cd             grab / beacon highlight
+"
+" ACTION IDS. An <action>(...) target is one of two things:
+"   1. a global action id, spelled as the module layer spells it —
+"      org-netbeans-modules-openfile-OpenFileAction — found by searching every
+"      Actions/ category, nested ones included;
+"   2. an editor action name — format, fix-imports, select-word — invoked off
+"      the focused editor's ActionMap. Some are registered per language, so a
+"      Java-only action does nothing in another editor.
+" Dashes and dots are interchangeable in an id: both spellings normalize to the
+" same action.
 " ============================================================================
 
 set which-key
@@ -22,10 +45,17 @@ set timeoutlen=300
 " Overlay colors — #RRGGBB, applied to both the light and dark themes. The two
 " label colors below sit at their defaults; expand-hint and grab are commented
 " so their built-in defaults stand — uncomment to pin your own.
-set overlay-color=#E52B50
+set overlay-color=#2ECC71
 set overlay-text-color=#ffffff
 " set expand-hint-color=#2b5db2
 " set grab-color=#cde8cd
+
+" ============================================================================
+" The meow layout — QWERTY by default, every key rebindable
+" ----------------------------------------------------------------------------
+" SPC is the keypad key and cannot be remapped; ESC and modifier chords never
+" reach the modal engine as typing (the chords live in the cmap layer below).
+" ============================================================================
 
 " expand / counts
 nmap 0 meow-expand-0
@@ -78,11 +108,9 @@ nmap o meow-block
 nmap O meow-to-block
 nmap p meow-yank
 nmap q meow-quit
-nmap Q avy-goto-line
 nmap r meow-replace
 nmap R meow-swap-grab
 nmap s meow-kill
-nmap S avy-goto-char-timer
 nmap t meow-till
 nmap u meow-undo
 nmap U meow-undo-in-selection
@@ -96,119 +124,179 @@ nmap Y meow-sync-grab
 nmap z meow-pop-selection
 nmap ' repeat
 
-" MOTION mode — the keymap of workbench trees: j/k/h/l move, q hides the
-" view, every unmapped key keeps its native meaning
+" --- avy jumps ---------------------------------------------------------------
+" S = avy-goto-char-timer, Q = avy-goto-line. Type chars (0.25 s pause labels
+" the matches), then hit a label key; Q labels visible lines, digits switch to
+" a line-number prompt.
+nmap S avy-goto-char-timer
+nmap Q avy-goto-line
+
+" MOTION mode — the keymap of workbench trees (Projects, Files, Navigator,
+" search results, ...): j/k/h/l move like the arrow keys (h collapses or goes
+" to the parent, l expands or enters), q hides the window, and every unmapped
+" key keeps its native meaning. Read-only editors do NOT use MOTION; they stay
+" NORMAL with the modify commands inert. `mmap <key> ignore` gives a key back
+" to the tree.
 mmap j meow-next
 mmap k meow-prev
 mmap h meow-left
 mmap l meow-right
 mmap q <action>(netmeow.hideView)
 
-" ── SPC keypad table ────────────────────────────────────────────────────────
-" SPC is the leader; these sequences dispatch Eclipse workbench commands.
-" SPC 1-9 = digit argument, SPC ? = cheatsheet, SPC / = describe-key
-" (handled in code).
-" SPC SPC: ace-click — label every clickable UI element, then pick one
-map <leader><Space> <action>(netmeow.aceClick)
-desc <leader><Space> ace-click
+" ============================================================================
+" The Emacs chord layer — modifier-key bindings, like the vanilla Emacs keymap
+" ----------------------------------------------------------------------------
+" Unlike the single-key layout above, these are Ctrl-/Alt- CHORDS. They fire
+" only outside INSERT and, like meow's own motions, EXTEND an active selection
+" instead of replacing it (so C-f after a selection grows it). Either spelling
+" works: the Emacs one (C-f, M-<) or the host one (control F, alt shift COMMA).
+" An unbound chord stays the IDE's; to hand a bound one back, map it to
+" `ignore` — e.g. `cmap C-f ignore` restores Find.
+" ============================================================================
 
-desc <leader>x C-x · files / buffers / splits
-" f = goto-file: Eclipse's Open Resource dialog
-map <leader>xf <action>(org.eclipse.ui.navigate.openResource)
-map <leader>xj <action>(org.eclipse.ui.navigate.showIn(org.eclipse.ui.navigate.showIn.targetId=org.jkiss.dbeaver.core.projectExplorer))
+" point motions (C-f C-b C-n C-p C-a C-e, M-f M-b M-a M-e)
+cmap C-f forward-char
+cmap C-b backward-char
+cmap C-n next-line
+cmap C-p previous-line
+cmap C-a move-beginning-of-line
+cmap C-e move-end-of-line
+cmap M-f forward-word
+cmap M-b backward-word
+cmap M-a backward-sentence
+cmap M-e forward-sentence
+
+" buffer + paragraph (M-< M-> M-{ M-})
+cmap M-< beginning-of-buffer
+cmap M-> end-of-buffer
+cmap M-{ backward-paragraph
+cmap M-} forward-paragraph
+
+" case + kill (M-u M-l M-c M-d)
+cmap M-u upcase-word
+cmap M-l downcase-word
+cmap M-c capitalize-word
+cmap M-d kill-word
+
+" ============================================================================
+" The keypad (SPC) table
+" ----------------------------------------------------------------------------
+" Group names follow the Emacs prefixes: SPC x / c / m = the C-x / C-c / M-
+" keymaps. SPC 0-9 (digit argument), SPC ? (cheatsheet) and SPC / (describe
+" key) are reserved by the keypad itself and cannot be remapped.
+" ============================================================================
+
+" SPC SPC: ace-click — label every clickable UI element, then pick one
+desc <leader><Space> ace-click
+map <leader><Space> <action>(netmeow.aceClick)
+
+" --- SPC b — bookmarks / buffers ---------------------------------------------
+" NetBeans has no numbered bookmark slots, so where ideameow puts b0-b9 this
+" walks the bookmarks instead: n next, p previous, c clear this file's.
+desc <leader>b bookmark (m set / n p walk / j jump) · b buffers
+map <leader>bb <action>(org-netbeans-modules-openfile-RecentFileAction)
+desc <leader>bb recent files
+map <leader>bm <action>(bookmark-toggle)
+desc <leader>bm toggle bookmark
+map <leader>bj <action>(org-netbeans-modules-editor-bookmarks-ui-BookmarksViewOpenAction)
+desc <leader>bj bookmarks window
+map <leader>bn <action>(bookmark-next)
+desc <leader>bn next bookmark
+map <leader>bp <action>(bookmark-previous)
+desc <leader>bp previous bookmark
+map <leader>bc <action>(clear-document-bookmarks)
+desc <leader>bc clear bookmarks
+
+" --- SPC x = C-x — files / buffers / windows ---------------------------------
+desc <leader>x C-x · file / buffer / window
+map <leader>xf <action>(org-netbeans-modules-jumpto-file-FileSearchAction)
+desc <leader>xf goto file
 " SPC x z = C-x z: repeat the last command (then bare z keeps repeating)
 map <leader>xz repeat
+desc <leader>xz repeat
+map <leader>xs <action>(org-openide-actions-SaveAllAction)
+desc <leader>xs save all
+map <leader>xb <action>(org-netbeans-modules-openfile-RecentFileAction)
+desc <leader>xb recent files
+map <leader>xk <action>(org-netbeans-core-windows-actions-CloseWindowAction)
+desc <leader>xk close tab
+map <leader>xd <action>(org-netbeans-modules-project-ui-logical-tab-action)
+desc <leader>xd projects window
+map <leader>xg <action>(org-netbeans-modules-git-ui-status-OpenStatusAction)
+desc <leader>xg git status
+map <leader>xj <action>(org-netbeans-modules-project-ui-SelectInProjects)
+desc <leader>xj select in projects
+map <leader>xe <action>(org-netbeans-modules-editor-macros-MacroDialogSupport$RunMacroAction)
+desc <leader>xe run macro
 map <leader>xo <action>(netmeow.aceWindow)
-map <leader>xb <action>(org.eclipse.ui.window.openEditorDropDown)
-map <leader>xd <action>(org.eclipse.ui.views.showView(org.eclipse.ui.views.showView.viewId=org.jkiss.dbeaver.core.databaseNavigator))
-map <leader>xs <action>(org.eclipse.ui.file.save)
-map <leader>xk <action>(org.eclipse.ui.file.close)
+desc <leader>xo ace-window
+map <leader>xu <action>(org-netbeans-modules-localhistory-ui-view-ShowHistoryAction)
+desc <leader>xu local history
+map <leader>xc <action>(org-netbeans-modules-project-ui-CloseProject)
+desc <leader>xc close project
+map <leader>x0 <action>(org-netbeans-core-multiview-ClearSplitAction)
+desc <leader>x0 unsplit
+map <leader>x1 <action>(org-netbeans-core-multiview-ClearSplitAction)
+desc <leader>x1 unsplit
 map <leader>x2 <action>(org-netbeans-core-multiview-SplitDocumentHorizontallyAction)
+desc <leader>x2 split right
 map <leader>x3 <action>(org-netbeans-core-multiview-SplitDocumentVerticallyAction)
+desc <leader>x3 split down
 
+" --- SPC x p = C-x p — project -----------------------------------------------
 desc <leader>xp C-x p · project
-map <leader>xpf <action>(org.eclipse.ui.navigate.openResource)
-map <leader>xpb <action>(org.eclipse.ui.window.openEditorDropDown)
-map <leader>xpg <action>(org.eclipse.search.ui.openFileSearchPage)
+map <leader>xpf <action>(org-netbeans-modules-jumpto-file-FileSearchAction)
+desc <leader>xpf goto file
+map <leader>xpb <action>(org-netbeans-modules-openfile-RecentFileAction)
+desc <leader>xpb recent files
+map <leader>xpg <action>(org-netbeans-modules-search-FindInFilesAction)
+desc <leader>xpg find in projects
+map <leader>xpr <action>(org-netbeans-modules-search-ReplaceInFilesAction)
+desc <leader>xpr replace in projects
+map <leader>xpc <action>(org-netbeans-modules-project-ui-BuildProject)
+desc <leader>xpc build project
 
+" --- SPC x r = C-x r — bookmarks ---------------------------------------------
 desc <leader>xr C-x r · bookmarks
-map <leader>xrb <action>(org.eclipse.ui.views.showView(org.eclipse.ui.views.showView.viewId=org.eclipse.ui.views.BookmarkView))
+map <leader>xrb <action>(org-netbeans-modules-editor-bookmarks-ui-BookmarksViewOpenAction)
+desc <leader>xrb bookmarks window
 
-desc <leader>w window / splits / zoom
-map <leader>ww <action>(netmeow.aceWindow)
-map <leader>wW <action>(netmeow.aceSwapWindow)
-map <leader>wr <action>(netmeow.aceResize)
-map <leader>wn <action>(org.eclipse.ui.window.nextEditor)
-map <leader>wp <action>(org.eclipse.ui.window.previousEditor)
-map <leader>w. <action>(org.eclipse.ui.window.nextEditor)
-map <leader>w, <action>(org.eclipse.ui.window.previousEditor)
-map <leader>wh <action>(netmeow.windmoveLeft)
-map <leader>wj <action>(netmeow.windmoveDown)
-map <leader>wk <action>(netmeow.windmoveUp)
-map <leader>wl <action>(netmeow.windmoveRight)
-" v/s: split the editor side-by-side / stacked (run again to unsplit)
-map <leader>wv <action>(org-netbeans-core-multiview-SplitDocumentVerticallyAction)
-map <leader>ws <action>(org-netbeans-core-multiview-SplitDocumentHorizontallyAction)
-" zoom on SPC w i/o (no reset — Eclipse defines only zoomIn/zoomOut)
-map <leader>wi <action>(zoom-text-in)
-map <leader>w= <action>(zoom-text-in)
-map <leader>wo <action>(zoom-text-out)
-map <leader>w- <action>(zoom-text-out)
+" --- SPC c = C-c — personal commands ----------------------------------------
+desc <leader>c C-c · commands (= M-m)
+map <leader>cf <action>(org-netbeans-modules-jumpto-file-FileSearchAction)
+desc <leader>cf goto file
+map <leader>cs <action>(org-openide-actions-SaveAllAction)
+desc <leader>cs save all
+map <leader>ck <action>(org-netbeans-core-windows-actions-CloseWindowAction)
+desc <leader>ck close tab
+map <leader>cr <action>(org-netbeans-modules-search-FindInFilesAction)
+desc <leader>cr find in projects
+map <leader>ce <action>(select-word)
+desc <leader>ce select word
+map <leader>ca <action>(org-netbeans-modules-tasklist-ui-TaskListAction)
+desc <leader>ca to-do window
+map <leader>cl <action>(org-netbeans-modules-utilities-CopyPathToClipboard)
+desc <leader>cl copy path
+map <leader>cg <action>(org-netbeans-modules-git-ui-status-OpenStatusAction)
+desc <leader>cg git status
 
-desc <leader>e edit / folding
-map <leader>er <action>(expand-fold)
-map <leader>ea <action>(expand-all-folds)
-
-desc <leader>f find / format / new
-map <leader>fe <action>(org.eclipse.ui.navigate.showInQuickMenu)
-map <leader>ff <action>(org.eclipse.search.ui.openFileSearchPage)
-map <leader>fi <action>(org.eclipse.ui.edit.findReplace)
-map <leader>fm <action>(format)
-map <leader>fn <action>(org.eclipse.ui.file.newQuickMenu)
-map <leader>fo <action>(format)
-map <leader>fr <action>(org.eclipse.ui.window.openEditorDropDown)
-
-desc <leader>g goto / history
-map <leader>gh <action>(org-netbeans-modules-git-ui-history-SearchHistoryAction)
-
-desc <leader>h maximize editor (hide views)
-map <leader>h <action>(org-netbeans-modules-applemenu-MinimizeWindowAction)
-
-desc <leader>j jump
-map <leader>ji <action>(org.eclipse.ui.navigate.forwardHistory)
-
-desc <leader>k key bindings
-map <leader>k <action>(org-netbeans-modules-options-OptionsWindowAction)
-
-desc <leader>l local history
-
-" SPC c m / M — edit and reload ~/.netmeowrc; reload saves a dirty rc editor
-" first
-desc <leader>c C-c · commands / config
-map <leader>cf <action>(org.eclipse.ui.navigate.openResource)
-map <leader>cs <action>(org.eclipse.ui.file.saveAll)
-map <leader>ck <action>(org.eclipse.ui.file.close)
-map <leader>cr <action>(org.eclipse.search.ui.openFileSearchPage)
+" SPC c m / M: edit / reload ~/.netmeowrc — reload saves a dirty rc editor first
 map <leader>cm <action>(netmeow.editRc)
+desc <leader>cm edit .netmeowrc
 map <leader>cM <action>(netmeow.reloadRc)
+desc <leader>cM reload .netmeowrc
 
+" SPC c j: avy jumps
 desc <leader>cj C-c j · avy jump
 map <leader>cjw avy-goto-char-timer
 map <leader>cjc avy-goto-char-timer
 map <leader>cjl avy-goto-line
 
-" SPC m = M-: meta — m x Quick Access (Eclipse's M-x), m , = M-, go back,
-" m . = M-. goto declaration, m o / m g = the avy jumps on this prefix
+" --- SPC m = M- — meta -------------------------------------------------------
+" The M- motions and edits, mirroring the cmap chords above so the keypad
+" reaches them too (SPC m f = M-f = forward-word, SPC m d = M-d, ...), the way
+" Emacs' meow keypad exposes the whole M- map under SPC m.
 desc <leader>m M- · meta
-map <leader>mx <action>(org.eclipse.ui.window.quickAccess)
-map <leader>mo avy-goto-char-timer
-map <leader>m, <action>(org.eclipse.ui.navigate.backwardHistory)
-map <leader>m. <action>(org.jkiss.dbeaver.ui.editors.sql.navigate.object)
-map <leader>mg avy-goto-line
-" the M- word/edit chords mirrored onto the keypad so SPC m reaches them
-" too (SPC m f = M-f = forward-word): a/e sentence back/forward, b/f word
-" back/forward, c/u/l capitalize/upcase/downcase-word, d kill-word,
-" < / > buffer ends, { / } paragraph
 map <leader>ma backward-sentence
 map <leader>mb backward-word
 map <leader>mc capitalize-word
@@ -221,161 +309,368 @@ map <leader>m< beginning-of-buffer
 map <leader>m> end-of-buffer
 map <leader>m{ backward-paragraph
 map <leader>m} forward-paragraph
+map <leader>mx <action>(org-netbeans-modules-quicksearch-QuickSearchAction)
+desc <leader>mx quick search (M-x)
+map <leader>mo avy-goto-char-timer
+map <leader>mr <action>(select-word)
+desc <leader>mr select word
+map <leader>my <action>(clipboard-history)
+desc <leader>my clipboard history
+map <leader>m. <action>(goto-declaration)
+desc <leader>m. goto declaration
+map <leader>m, <action>(jump-list-last-edit)
+desc <leader>m, last edit location
+map <leader>mg avy-goto-line
 
 desc <leader>ms M-s · search
-map <leader>msr <action>(org.eclipse.search.ui.openFileSearchPage)
-map <leader>msl <action>(org.eclipse.ui.edit.findReplace)
-map <leader>mss <action>(org.eclipse.ui.edit.findReplace)
-map <leader>msL <action>(org.eclipse.search.ui.openFileSearchPage)
-map <leader>mso <action>(org.jkiss.dbeaver.ui.editors.sql.show.outline)
+map <leader>msr <action>(org-netbeans-modules-search-FindInFilesAction)
+desc <leader>msr find in projects
+map <leader>msl <action>(find)
+desc <leader>msl find
+map <leader>mss <action>(find)
+desc <leader>mss find
+map <leader>msL <action>(org-netbeans-modules-search-FindInFilesAction)
+desc <leader>msL find in projects
+map <leader>mso <action>(org-netbeans-modules-java-navigation-actions-ShowMembersAction)
+desc <leader>mso inspect members
 
-desc <leader>n new
-map <leader>nd <action>(org.jkiss.dbeaver.core.new.folder)
-map <leader>nf <action>(org.eclipse.ui.file.newQuickMenu)
-
-desc <leader>o open
-
-desc <leader>p popup / pin
-map <leader>pf <action>(org.eclipse.ui.navigate.openResource)
-map <leader>pm <action>(org.eclipse.ui.window.showContextMenu)
-map <leader>pp <action>(org.eclipse.ui.edit.text.contentAssist.contextInformation)
-
-desc <leader>q close editor tab
-map <leader>q <action>(org.eclipse.ui.file.close)
-
-desc <leader>r refactor / run
-map <leader>rr <action>(org.jkiss.dbeaver.ui.editors.sql.run.statement)
-map <leader>rs <action>(org.jkiss.dbeaver.ui.editors.sql.run.script)
-
-desc <leader>s search / show
-map <leader>sa <action>(org.eclipse.ui.window.quickAccess)
-map <leader>sf <action>(org.eclipse.ui.navigate.openResource)
-map <leader>sp <action>(org.eclipse.search.ui.performTextSearchWorkspace)
-map <leader>sr <action>(replace)
-map <leader>ss <action>(org.eclipse.ui.edit.findReplace)
-map <leader>sS <action>(org.jkiss.dbeaver.ui.editors.sql.show.outline)
-map <leader>sv <action>(netmeow.reloadRc)
-
-desc <leader>t toggle (result panel / wrap / whitespace)
-map <leader>tf <action>(org.eclipse.ui.window.fullscreenmode)
-
-desc <leader>; settings / UI
-map <leader>;f <action>(org.eclipse.ui.window.fullscreenmode)
-map <leader>;k <action>(org-netbeans-modules-options-OptionsWindowAction)
-map <leader>;l <action>(toggle-line-numbers)
-map <leader>;s <action>(org-netbeans-modules-options-OptionsWindowAction)
-
-desc <leader>a activate view
-map <leader>ac <action>(org.eclipse.ui.views.showView(org.eclipse.ui.views.showView.viewId=org.eclipse.ui.console.ConsoleView))
-map <leader>ad <action>(org.eclipse.ui.views.showView(org.eclipse.ui.views.showView.viewId=org.jkiss.dbeaver.core.databaseNavigator))
-map <leader>ap <action>(org.eclipse.ui.views.showView(org.eclipse.ui.views.showView.viewId=org.jkiss.dbeaver.core.projectExplorer))
-map <leader>aP <action>(org-netbeans-core-io-ui-IOWindowAction)
-map <leader>av <action>(org-netbeans-modules-git-ui-history-SearchHistoryAction)
-
-" SPC b — bookmarks: m sets a line bookmark, j opens the Bookmarks view
-desc <leader>b bookmark (m set / j jump)
-map <leader>bm <action>(org.eclipse.ui.edit.addBookmark)
-map <leader>bj <action>(org.eclipse.ui.views.showView(org.eclipse.ui.views.showView.viewId=org.eclipse.ui.views.BookmarkView))
-map <leader>bb <action>(org.eclipse.ui.window.openEditorDropDown)
-
-" SPC . / SPC , — next / prev annotation, tab, executed query
-desc <leader>. next (annotation / tab / query)
-map <leader>.e <action>(org.eclipse.ui.navigate.next)
-map <leader>.t <action>(org.eclipse.ui.window.nextEditor)
-desc <leader>, previous (annotation / tab / query)
-map <leader>,e <action>(org.eclipse.ui.navigate.previous)
-map <leader>,t <action>(org.eclipse.ui.window.previousEditor)
-
-" ============================================================================
-" Repeat groups — tap-to-continue transient maps
-" ----------------------------------------------------------------------------
-" After any binding whose TARGET is listed in a group below (membership is
-" the target, not the key), the next keypress is first looked up in that
-" group: a member key re-dispatches its target and keeps the run alive; any
-" other key (or ESC) ends the run and keeps its normal meaning — nothing is
-" swallowed, and there is no timeout. The entering keypad key needn't be a
-" member. So: SPC . e then . . , walks annotations; SPC w i then i i i keeps
-" zooming. Syntax:
-"   repeat <group> <key> <target>     target grammar = the map-line RHS
-"   repeat <group> <key> ignore       give a bundled group's key back
-" ============================================================================
-repeat error . <action>(org.eclipse.ui.navigate.next)
-repeat error , <action>(org.eclipse.ui.navigate.previous)
-repeat zoom i <action>(org.eclipse.ui.edit.text.zoomIn)
-repeat zoom = <action>(org.eclipse.ui.edit.text.zoomIn)
-repeat zoom o <action>(org.eclipse.ui.edit.text.zoomOut)
-repeat zoom - <action>(org.eclipse.ui.edit.text.zoomOut)
-repeat tab n <action>(org.eclipse.ui.window.nextEditor)
-repeat tab p <action>(org.eclipse.ui.window.previousEditor)
-repeat tab . <action>(org.eclipse.ui.window.nextEditor)
-repeat tab , <action>(org.eclipse.ui.window.previousEditor)
-
-" Emacs C-x z: after repeat (SPC x z or '), bare z keeps repeating
-repeat replay z repeat
-
-" ----------------------------------------------------------------------------
-" the Emacs modifier-chord layer: 18 chords that work outside INSERT.
-" An unbound chord stays the IDE's. To hand one back, map it to `ignore`:
-"   cmap C-f ignore
-" ----------------------------------------------------------------------------
-cmap C-f forward-char
-cmap C-b backward-char
-cmap C-n next-line
-cmap C-p previous-line
-cmap C-a move-beginning-of-line
-cmap C-e move-end-of-line
-cmap M-f forward-word
-cmap M-b backward-word
-cmap M-a backward-sentence
-cmap M-e forward-sentence
-cmap M-< beginning-of-buffer
-cmap M-> end-of-buffer
-cmap M-{ backward-paragraph
-cmap M-} forward-paragraph
-cmap M-u upcase-word
-cmap M-l downcase-word
-cmap M-c capitalize-word
-cmap M-d kill-word
-
-" readable which-key labels for the remapped slots
-desc <leader>;k keymap
-desc <leader>;l line numbers
-desc <leader>;s settings
-desc <leader>aP output
-desc <leader>av history
-desc <leader>ea expand all folds
-desc <leader>er expand fold
-desc <leader>fm format
-desc <leader>fo format
-desc <leader>gh file history
-desc <leader>sr replace
-desc <leader>w- zoom out
-desc <leader>w= zoom in
-desc <leader>wi zoom in
-desc <leader>wo zoom out
-desc <leader>ws split right
+" --- SPC w — the window map (Emacs C-c w) ------------------------------------
+desc <leader>w window map (Emacs C-c w)
+" v/s: split the editor side-by-side / stacked
+map <leader>wv <action>(org-netbeans-core-multiview-SplitDocumentVerticallyAction)
 desc <leader>wv split down
-desc <leader>x2 split right
-desc <leader>x3 split down
+map <leader>ws <action>(org-netbeans-core-multiview-SplitDocumentHorizontallyAction)
+desc <leader>ws split right
+map <leader>wd <action>(org-netbeans-core-multiview-ClearSplitAction)
+desc <leader>wd unsplit
+map <leader>wD <action>(org-netbeans-core-multiview-ClearSplitAction)
+desc <leader>wD unsplit
+map <leader>wm <action>(org-netbeans-core-multiview-ClearSplitAction)
+desc <leader>wm unsplit
+map <leader>ww <action>(netmeow.aceWindow)
+desc <leader>ww ace-window
+map <leader>wW <action>(netmeow.aceSwapWindow)
+desc <leader>wW ace-swap-window
+" r: ace-resize — label every divider (editor splits AND window edges), pick
+" one, then h/l or Left/Right resize side dividers, j/k or Down/Up resize
+" top/bottom; ESC or any other key ends the hold
+map <leader>wr <action>(netmeow.aceResize)
+desc <leader>wr ace-resize
+" n/p (aliases . and ,): cycle editor tabs (C-x <right>/<left>); the tab repeat
+" group below keeps a bare n/p/./, walking afterwards
+map <leader>wn <action>(org-netbeans-core-windows-actions-NextTabAction)
+desc <leader>wn next tab
+map <leader>wp <action>(org-netbeans-core-windows-actions-PreviousTabAction)
+desc <leader>wp previous tab
+map <leader>w. <action>(org-netbeans-core-windows-actions-NextTabAction)
+desc <leader>w. next tab
+map <leader>w, <action>(org-netbeans-core-windows-actions-PreviousTabAction)
+desc <leader>w, previous tab
+" h/j/k/l: directional window focus from the caret — editor splits AND diff
+" panes
+map <leader>wh <action>(netmeow.windmoveLeft)
+desc <leader>wh focus left
+map <leader>wj <action>(netmeow.windmoveDown)
+desc <leader>wj focus down
+map <leader>wk <action>(netmeow.windmoveUp)
+desc <leader>wk focus up
+map <leader>wl <action>(netmeow.windmoveRight)
+desc <leader>wl focus right
+" H/L: NetBeans has no swap-with-the-neighbouring-split, so the capitals shift
+" this document's tab within its group instead; there is no up/down analog.
+map <leader>wH <action>(org-netbeans-core-windows-actions-MoveWindowLeftAction)
+desc <leader>wH shift tab left
+map <leader>wL <action>(org-netbeans-core-windows-actions-MoveWindowRightAction)
+desc <leader>wL shift tab right
+map <leader>wi <action>(zoom-text-in)
+desc <leader>wi zoom in
+map <leader>w= <action>(zoom-text-in)
+desc <leader>w= zoom in
+map <leader>wo <action>(zoom-text-out)
+desc <leader>wo zoom out
+map <leader>w- <action>(zoom-text-out)
+desc <leader>w- zoom out
 
-" SPC r e — refactoring, the ideameow slot rendered as a group
-desc <leader>re refactor
+" --- SPC ; — settings / UI ---------------------------------------------------
+desc <leader>; settings / UI
+map <leader>;C <action>(org-netbeans-modules-project-ui-CloseProject)
+desc <leader>;C close project
+map <leader>;d <action>(org-netbeans-core-windows-actions-ShowEditorOnlyAction)
+desc <leader>;d editor only
+map <leader>;f <action>(org-netbeans-core-windows-actions-ToggleFullScreenAction)
+desc <leader>;f full screen
+map <leader>;k <action>(org-netbeans-modules-options-OptionsWindowAction)
+desc <leader>;k keymap
+map <leader>;l <action>(toggle-line-numbers)
+desc <leader>;l line numbers
+map <leader>;m <action>(org-netbeans-modules-parsing-impl-indexing-ScanForExternalChanges)
+desc <leader>;m scan for external changes
+map <leader>;p <action>(org-netbeans-modules-autoupdate-ui-actions-PluginManagerAction)
+desc <leader>;p plugins
+map <leader>;r <action>(org-netbeans-modules-project-ui-actions-ActiveConfigAction)
+desc <leader>;r run configuration
+map <leader>;s <action>(org-netbeans-modules-options-OptionsWindowAction)
+desc <leader>;s settings
+map <leader>;T <action>(toggle-toolbar)
+desc <leader>;T editor toolbar
+map <leader>;z <action>(org-netbeans-core-windows-actions-ShowEditorOnlyAction)
+desc <leader>;z editor only
 
-" refactoring: ideameow slot letters where NetBeans has the action
+" --- SPC a — activate windows ------------------------------------------------
+" NetBeans has no Gradle, Maven, Coverage, Task or AI window, so those
+" ideameow slots are unbound here; F files and x favorites are the NetBeans
+" windows with no ideameow counterpart.
+desc <leader>a activate window
+map <leader>ab <action>(org-netbeans-modules-editor-bookmarks-ui-BookmarksViewOpenAction)
+desc <leader>ab bookmarks
+map <leader>aB <action>(org-netbeans-core-io-ui-IOWindowAction)
+desc <leader>aB output
+map <leader>ac <action>(org-netbeans-modules-git-ui-status-OpenStatusAction)
+desc <leader>ac git status
+map <leader>ad <action>(org-netbeans-modules-debugger-ui-actions-DebuggingViewAction)
+desc <leader>ad debugging
+map <leader>aD <action>(org-netbeans-core-ide-ServicesTabAction)
+desc <leader>aD services
+map <leader>af <action>(org-netbeans-modules-search-ResultViewOpenAction)
+desc <leader>af search results
+map <leader>aF <action>(org-netbeans-modules-project-ui-physical-tab-action)
+desc <leader>aF files
+map <leader>ah <action>(org-netbeans-modules-refactoring-java-callhierarchy-CallHierarchyAction)
+desc <leader>ah call hierarchy
+map <leader>an <action>(org-netbeans-modules-notifications-NotificationCenterTopComponent)
+desc <leader>an notifications
+map <leader>ap <action>(org-netbeans-modules-project-ui-logical-tab-action)
+desc <leader>ap projects
+map <leader>aP <action>(org-netbeans-modules-analysis-ui-AnalysisResultTopComponent)
+desc <leader>aP inspection results
+map <leader>ar <action>(org-netbeans-core-io-ui-IOWindowAction)
+desc <leader>ar output
+map <leader>as <action>(org-netbeans-modules-navigator-ShowNavigatorAction)
+desc <leader>as navigator
+map <leader>aS <action>(org-netbeans-core-ide-ServicesTabAction)
+desc <leader>aS services
+map <leader>at <action>(org-netbeans-modules-dlight-terminal-action-OpenInTerminalAction)
+desc <leader>at terminal
+map <leader>aT <action>(org-netbeans-modules-tasklist-ui-TaskListAction)
+desc <leader>aT to-do
+map <leader>au <action>(org-netbeans-modules-gsf-testrunner-ui-ResultWindowOpenAction)
+desc <leader>au test results
+map <leader>av <action>(org-netbeans-modules-git-ui-status-OpenStatusAction)
+desc <leader>av git status
+map <leader>aw <action>(org-netbeans-modules-git-ui-repository-RepositoryBrowserAction)
+desc <leader>aw git repository
+map <leader>ax <action>(org-netbeans-modules-favorites-View)
+desc <leader>ax favorites
+
+" --- SPC d — debug / run -----------------------------------------------------
+desc <leader>d debug / run
+map <leader>db <action>(org-netbeans-modules-debugger-ui-actions-DebugProjectAction)
+desc <leader>db debug project
+map <leader>dd <action>(org-netbeans-modules-debugger-ui-actions-DebugFileAction)
+desc <leader>dd debug file
+map <leader>de <action>(org-netbeans-modules-debugger-ui-actions-DebugProjectAction)
+desc <leader>de debug project
+
+" --- SPC e — extract / edit / expand ----------------------------------------
+desc <leader>e extract / refactor
+map <leader>ea <action>(expand-all-folds)
+desc <leader>ea expand all folds
+map <leader>ec <action>(org-netbeans-modules-java-hints-introduce-IntroduceConstantAction)
+desc <leader>ec introduce constant
+map <leader>ef <action>(org-netbeans-modules-java-hints-introduce-IntroduceFieldAction)
+desc <leader>ef introduce field
 map <leader>ei <action>(org-netbeans-modules-refactoring-java-api-ui-ExtractInterfaceAction)
 desc <leader>ei extract interface
+map <leader>em <action>(org-netbeans-modules-java-hints-introduce-IntroduceMethodAction)
+desc <leader>em extract method
 map <leader>ep <action>(org-netbeans-modules-refactoring-java-api-ui-IntroduceParameterAction)
 desc <leader>ep introduce parameter
-map <leader>ip <action>(org-netbeans-modules-refactoring-java-api-ui-IntroduceParameterAction)
-desc <leader>ip introduce parameter
+map <leader>er <action>(expand-fold)
+desc <leader>er expand fold
+map <leader>ev <action>(org-netbeans-modules-java-hints-introduce-IntroduceVariableAction)
+desc <leader>ev introduce variable
+map <leader>eI <action>(org-netbeans-modules-options-OptionsWindowAction)
+desc <leader>eI settings
+map <leader>eP <action>(org-netbeans-modules-project-ui-CustomizeProject)
+desc <leader>eP project properties
+map <leader>eR <action>(org-netbeans-modules-project-ui-actions-ActiveConfigAction)
+desc <leader>eR run configuration
+map <leader>eS <action>(org-netbeans-modules-options-OptionsWindowAction)
+desc <leader>eS settings
+
+" --- SPC f — find / format ---------------------------------------------------
+desc <leader>f find / format
+map <leader>fe <action>(org-netbeans-core-ui-sysopen-OpenParentInSystemAction)
+desc <leader>fe reveal in finder
+map <leader>ff <action>(org-netbeans-modules-search-FindInFilesAction)
+desc <leader>ff find in projects
+map <leader>fi <action>(find)
+desc <leader>fi find
+map <leader>fm <action>(format)
+desc <leader>fm format
+map <leader>fn <action>(org-netbeans-modules-project-ui-NewFile)
+desc <leader>fn new file
+map <leader>fo <action>(format)
+desc <leader>fo format
+map <leader>fp <action>(org-netbeans-modules-search-FindInFilesAction)
+desc <leader>fp find in projects
+map <leader>fr <action>(org-netbeans-modules-openfile-RecentFileAction)
+desc <leader>fr recent files
+map <leader>fs <action>(org-netbeans-core-windows-actions-ToggleFullScreenAction)
+desc <leader>fs full screen
+map <leader>fu <action>(org-netbeans-modules-refactoring-api-ui-WhereUsedAction)
+desc <leader>fu find usages
+
+" --- SPC g — git / goto / generate -------------------------------------------
+desc <leader>g git / goto / generate
+map <leader>ga <action>(org-netbeans-modules-git-ui-actions-AddAction)
+desc <leader>ga git add
+map <leader>gb <action>(org-netbeans-modules-git-ui-blame-AnnotateAction)
+desc <leader>gb annotate
+map <leader>gc <action>(org-netbeans-modules-git-ui-commit-CommitAction)
+desc <leader>gc commit
+map <leader>gd <action>(org-netbeans-modules-git-ui-diff-DiffAction)
+desc <leader>gd diff
+map <leader>ge <action>(generate-code)
+desc <leader>ge generate code
+map <leader>gf <action>(org-netbeans-modules-git-ui-fetch-FetchAction)
+desc <leader>gf fetch
+map <leader>gg <action>(org-netbeans-modules-git-ui-status-OpenStatusAction)
+desc <leader>gg git status
+map <leader>gh <action>(org-netbeans-modules-git-ui-history-SearchHistoryAction)
+desc <leader>gh file history
+map <leader>gi <action>(goto-implementation)
+desc <leader>gi goto implementation
+map <leader>gl <action>(org-netbeans-modules-git-ui-history-SearchRepositoryHistoryAction)
+desc <leader>gl repository history
+map <leader>gp <action>(org-netbeans-modules-git-ui-fetch-PullAction)
+desc <leader>gp pull
+map <leader>gP <action>(org-netbeans-modules-git-ui-push-PushAction)
+desc <leader>gP push
+map <leader>gw <action>(org-netbeans-modules-git-ui-repository-RepositoryBrowserAction)
+desc <leader>gw git repository
+
+" --- SPC h — hide all windows -----------------------------------------------
+desc <leader>h hide all windows
+map <leader>h <action>(org-netbeans-core-windows-actions-ShowEditorOnlyAction)
+
+" --- SPC i — introduce / inline ---------------------------------------------
+desc <leader>i introduce / inline
+map <leader>ic <action>(org-netbeans-modules-java-hints-introduce-IntroduceConstantAction)
+desc <leader>ic introduce constant
+map <leader>if <action>(org-netbeans-modules-java-hints-introduce-IntroduceFieldAction)
+desc <leader>if introduce field
 map <leader>il <action>(org-netbeans-modules-refactoring-java-api-ui-InlineAction)
 desc <leader>il inline
+map <leader>im <action>(generate-code)
+desc <leader>im generate code
 map <leader>in <action>(org-netbeans-modules-refactoring-java-api-ui-InlineAction)
 desc <leader>in inline
+map <leader>ip <action>(org-netbeans-modules-refactoring-java-api-ui-IntroduceParameterAction)
+desc <leader>ip introduce parameter
+map <leader>iv <action>(org-netbeans-modules-java-hints-introduce-IntroduceVariableAction)
+desc <leader>iv introduce variable
+
+" --- SPC j — docs / jump -----------------------------------------------------
+desc <leader>j docs / jump
+map <leader>jd <action>(documentation-show)
+desc <leader>jd documentation
+map <leader>ji <action>(goto-implementation)
+desc <leader>ji goto implementation
+
+" --- SPC k — keymap ----------------------------------------------------------
+desc <leader>k keymap
+map <leader>k <action>(org-netbeans-modules-options-OptionsWindowAction)
+
+" --- SPC l — local history ---------------------------------------------------
+desc <leader>l local history
+map <leader>lh <action>(org-netbeans-modules-localhistory-ui-view-ShowHistoryAction)
+desc <leader>lh show history
+
+" --- SPC n — new -------------------------------------------------------------
+desc <leader>n new
+map <leader>ne <action>(org-netbeans-modules-project-ui-NewFile)
+desc <leader>ne new file
+map <leader>nf <action>(org-netbeans-modules-project-ui-NewFile)
+desc <leader>nf new file
+map <leader>np <action>(org-netbeans-modules-project-ui-NewProject)
+desc <leader>np new project
+map <leader>nt <action>(org-netbeans-modules-dlight-terminal-action-OpenInTerminalAction)
+desc <leader>nt terminal
+
+" --- SPC o — open / optimize / override --------------------------------------
+desc <leader>o open / optimize / override
+map <leader>oe <action>(org-netbeans-core-ui-sysopen-OpenParentInSystemAction)
+desc <leader>oe reveal in finder
+map <leader>oE <action>(org-netbeans-core-ui-sysopen-OpenInSystemAction)
+desc <leader>oE open with system app
+map <leader>of <action>(org-netbeans-modules-openfile-OpenFileAction)
+desc <leader>of open file
+map <leader>oP <action>(org-netbeans-modules-openfile-OpenFileAction)
+desc <leader>oP open file
+map <leader>oi <action>(fix-imports)
+desc <leader>oi fix imports
+map <leader>oI <action>(organize-imports)
+desc <leader>oI organize imports
+map <leader>om <action>(generate-code)
+desc <leader>om generate code
+map <leader>op <action>(org-netbeans-modules-project-ui-logical-tab-action)
+desc <leader>op projects window
+map <leader>or <action>(org-netbeans-modules-project-ui-RecentProjects)
+desc <leader>or recent projects
+map <leader>ot <action>(org-netbeans-modules-dlight-terminal-action-OpenInTerminalAction)
+desc <leader>ot open in terminal
+
+" --- SPC p — popup / project / docs -----------------------------------------
+desc <leader>p popup / project / docs
+map <leader>pd <action>(documentation-show)
+desc <leader>pd documentation
+map <leader>pf <action>(org-netbeans-modules-jumpto-file-FileSearchAction)
+desc <leader>pf goto file
+map <leader>ph <action>(tooltip-show)
+desc <leader>ph hover info
+map <leader>pi <action>(goto-implementation)
+desc <leader>pi goto implementation
+map <leader>pm <action>(org-openide-actions-PopupAction)
+desc <leader>pm context menu
+map <leader>pr <action>(org-netbeans-modules-project-ui-actions-ActiveConfigAction)
+desc <leader>pr run configuration
+
+" --- SPC q — close the current tab ------------------------------------------
+desc <leader>q close editor tab
+map <leader>q <action>(org-netbeans-core-windows-actions-CloseWindowAction)
+
+" --- SPC r — run / refactor / replace ---------------------------------------
+desc <leader>r run / refactor / replace
+map <leader>ra <action>(org-netbeans-modules-quicksearch-QuickSearchAction)
+desc <leader>ra run anything
+map <leader>rb <action>(org-netbeans-modules-git-ui-checkout-RevertChangesAction)
+desc <leader>rb revert changes
+map <leader>rB <action>(org-netbeans-modules-git-ui-checkout-RevertChangesAction)
+desc <leader>rB revert changes
+map <leader>rd <action>(org-netbeans-modules-debugger-ui-actions-DebugFileAction)
+desc <leader>rd debug file
+map <leader>rf <action>(org-netbeans-modules-openfile-RecentFileAction)
+desc <leader>rf recent files
+map <leader>ri <action>(org-netbeans-core-ui-sysopen-OpenParentInSystemAction)
+desc <leader>ri reveal in finder
+map <leader>rl <action>(jump-list-last-edit)
+desc <leader>rl last edit location
 map <leader>rn <action>(org-netbeans-modules-refactoring-api-ui-RenameAction)
 desc <leader>rn rename
+map <leader>ro <action>(org-netbeans-modules-git-ui-checkout-RevertChangesAction)
+desc <leader>ro revert changes
+map <leader>rp <action>(replace)
+desc <leader>rp replace
+map <leader>rr <action>(org-netbeans-modules-project-ui-RunSingle)
+desc <leader>rr run file
+map <leader>ru <action>(org-netbeans-modules-project-ui-actions-ActiveConfigAction)
+desc <leader>ru run configuration
+map <leader>rw <action>(org-netbeans-modules-search-ReplaceInFilesAction)
+desc <leader>rw replace in projects
 
-" SPC r e — the full NetBeans refactoring set
+" SPC r e — ideameow's refactoring quick list, rendered as the full NetBeans
+" refactoring set
 desc <leader>re refactor
 map <leader>rer <action>(org-netbeans-modules-refactoring-api-ui-RenameAction)
 desc <leader>rer rename
@@ -410,21 +705,131 @@ desc <leader>ree introduce parameter
 map <leader>rex <action>(org-netbeans-modules-refactoring-java-api-ui-IntroduceLocalExtensionAction)
 desc <leader>rex introduce local extension
 
-" SPC o — open, transferred from ideameow
-desc <leader>o open / imports / terminal
-map <leader>oe <action>(org-netbeans-core-ui-sysopen-OpenParentInSystemAction)
-desc <leader>oe reveal in finder
-map <leader>oE <action>(org-netbeans-core-ui-sysopen-OpenInSystemAction)
-desc <leader>oE open with system app
-map <leader>of <action>(org-netbeans-modules-openfile-OpenFileAction)
-desc <leader>of open file
-map <leader>oP <action>(org-netbeans-modules-openfile-OpenFileAction)
-desc <leader>oP open file
-map <leader>oi <action>(fix-imports)
-desc <leader>oi fix imports
-map <leader>om <action>(org-netbeans-modules-editor-codegen-NbGenerateCodeAction$GlobalAction)
-desc <leader>om generate code
-map <leader>or <action>(org-netbeans-modules-project-ui-RecentProjects)
-desc <leader>or recent projects
-map <leader>ot <action>(org-netbeans-modules-dlight-terminal-action-OpenInTerminalAction)
-desc <leader>ot open in terminal
+" --- SPC s — search / show / step -------------------------------------------
+desc <leader>s search / show / step
+map <leader>sa <action>(org-netbeans-modules-quicksearch-QuickSearchAction)
+desc <leader>sa quick search
+map <leader>sc <action>(org-netbeans-modules-jumpto-type-GoToType)
+desc <leader>sc goto type
+map <leader>sd <action>(documentation-show)
+desc <leader>sd documentation
+map <leader>sf <action>(org-netbeans-modules-jumpto-file-FileSearchAction)
+desc <leader>sf goto file
+map <leader>sh <action>(tooltip-show)
+desc <leader>sh hover info
+map <leader>si <action>(org-netbeans-modules-debugger-ui-actions-StepIntoAction)
+desc <leader>si step into
+map <leader>sm <action>(org-openide-actions-PopupAction)
+desc <leader>sm context menu
+map <leader>sn <action>(toggle-breadcrumbs-view)
+desc <leader>sn breadcrumbs
+map <leader>so <action>(org-netbeans-modules-debugger-ui-actions-StepOverAction)
+desc <leader>so step over
+map <leader>sp <action>(org-netbeans-modules-search-FindInFilesAction)
+desc <leader>sp find in projects
+map <leader>sr <action>(org-netbeans-modules-search-ReplaceInFilesAction)
+desc <leader>sr replace in projects
+map <leader>ss <action>(find)
+desc <leader>ss find
+map <leader>st <action>(org-netbeans-modules-search-FindInFilesAction)
+desc <leader>st find in projects
+map <leader>su <action>(org-netbeans-modules-refactoring-api-ui-WhereUsedAction)
+desc <leader>su show usages
+" SPC s v: reload ~/.netmeowrc
+map <leader>sv <action>(netmeow.reloadRc)
+desc <leader>sv reload .netmeowrc
+map <leader>sG <action>(org-netbeans-modules-parsing-impl-indexing-ScanForExternalChanges)
+desc <leader>sG scan for external changes
+map <leader>sH <action>(org-netbeans-modules-git-ui-history-SearchHistoryAction)
+desc <leader>sH file history
+map <leader>sI <action>(org-netbeans-modules-editor-hints-FixAction)
+desc <leader>sI fix code
+map <leader>sM <action>(org-netbeans-modules-parsing-impl-indexing-ScanForExternalChanges)
+desc <leader>sM scan for external changes
+map <leader>sO <action>(org-netbeans-modules-debugger-ui-actions-StepOutAction)
+desc <leader>sO step out
+map <leader>sP <action>(org-openide-actions-PopupAction)
+desc <leader>sP context menu
+map <leader>sS <action>(org-netbeans-modules-jumpto-symbol-GoToSymbol)
+desc <leader>sS goto symbol
+map <leader>sT <action>(org-netbeans-modules-project-ui-actions-StopBuildingAction)
+desc <leader>sT stop
+
+" --- SPC t — toggle / breakpoints -------------------------------------------
+desc <leader>t toggle / breakpoints
+map <leader>tb <action>(org-netbeans-modules-debugger-ui-actions-ToggleBreakpointAction)
+desc <leader>tb line breakpoint
+map <leader>tf <action>(org-netbeans-core-windows-actions-ToggleFullScreenAction)
+desc <leader>tf full screen
+map <leader>th <action>(toggle-highlight-search)
+desc <leader>th highlight search
+map <leader>ti <action>(toggle-inline-hints)
+desc <leader>ti inline hints
+map <leader>tl <action>(toggle-line-numbers)
+desc <leader>tl line numbers
+map <leader>tn <action>(toggle-non-printable-characters)
+desc <leader>tn non-printable characters
+map <leader>tt <action>(toggle-toolbar)
+desc <leader>tt editor toolbar
+map <leader>tz <action>(org-netbeans-core-windows-actions-ShowEditorOnlyAction)
+desc <leader>tz editor only
+
+" --- SPC u — unwrap ---------------------------------------------------------
+desc <leader>u unwrap
+map <leader>uw <action>(remove-surrounding-code)
+desc <leader>uw remove surrounding code
+
+" --- SPC v — VCS -------------------------------------------------------------
+desc <leader>v VCS
+map <leader>vb <action>(org-netbeans-modules-debugger-ui-actions-BreakpointsViewAction)
+desc <leader>vb breakpoints
+map <leader>vc <action>(org-netbeans-modules-git-ui-commit-CommitAction)
+desc <leader>vc commit
+map <leader>vh <action>(org-netbeans-modules-git-ui-history-SearchHistoryAction)
+desc <leader>vh file history
+map <leader>vl <action>(org-netbeans-modules-git-ui-history-SearchRepositoryHistoryAction)
+desc <leader>vl repository history
+map <leader>vp <action>(org-netbeans-modules-git-ui-fetch-PullAction)
+desc <leader>vp pull
+map <leader>vP <action>(org-netbeans-modules-git-ui-push-PushAction)
+desc <leader>vP push
+
+" --- SPC . / SPC , — next / previous ----------------------------------------
+desc <leader>. next (error / tab)
+map <leader>.e <action>(org-netbeans-core-actions-JumpNextAction)
+desc <leader>.e next error
+map <leader>.t <action>(org-netbeans-core-windows-actions-NextTabAction)
+desc <leader>.t next tab
+desc <leader>, previous (error / tab)
+map <leader>,e <action>(org-netbeans-core-actions-JumpPrevAction)
+desc <leader>,e previous error
+map <leader>,t <action>(org-netbeans-core-windows-actions-PreviousTabAction)
+desc <leader>,t previous tab
+
+" ============================================================================
+" Repeat groups — tap-to-continue transient maps
+" ----------------------------------------------------------------------------
+" After any binding whose TARGET is listed in a group below (membership is the
+" target, not the key), the next keypress is first looked up in that group: a
+" member key re-dispatches its target and keeps the run alive; any other key
+" (or ESC) ends the run and keeps its normal meaning — nothing is swallowed,
+" and there is no timeout. The entering keypad key needn't be a member. So:
+" SPC . e then . . , walks errors; SPC w i then i i i keeps zooming. Syntax:
+"   repeat <group> <key> <target>     target grammar = the map-line RHS
+"   repeat <group> <key> ignore       give a bundled group's key back
+" ============================================================================
+repeat error . <action>(org-netbeans-core-actions-JumpNextAction)
+repeat error , <action>(org-netbeans-core-actions-JumpPrevAction)
+repeat zoom i <action>(zoom-text-in)
+repeat zoom = <action>(zoom-text-in)
+repeat zoom o <action>(zoom-text-out)
+repeat zoom - <action>(zoom-text-out)
+repeat tab n <action>(org-netbeans-core-windows-actions-NextTabAction)
+repeat tab p <action>(org-netbeans-core-windows-actions-PreviousTabAction)
+repeat tab . <action>(org-netbeans-core-windows-actions-NextTabAction)
+repeat tab , <action>(org-netbeans-core-windows-actions-PreviousTabAction)
+repeat bookmark n <action>(bookmark-next)
+repeat bookmark p <action>(bookmark-previous)
+
+" Emacs C-x z: after repeat (SPC x z or '), bare z keeps repeating
+repeat replay z repeat

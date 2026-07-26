@@ -31,6 +31,7 @@ import javax.swing.text.Caret;
 import javax.swing.text.Document;
 import javax.swing.text.Element;
 import javax.swing.text.JTextComponent;
+import javax.swing.text.Position;
 import javax.swing.text.StyledDocument;
 import javax.swing.text.Utilities;
 import org.netbeans.api.editor.caret.CaretInfo;
@@ -89,6 +90,21 @@ final class NbEditor implements EditorPort {
         int length = component.getDocument().getLength();
         caret.setDot(clamp(first.anchor(), length));
         caret.moveDot(clamp(first.active(), length));
+        if (sels.size() == 1 || !(caret instanceof EditorCaret carets)) return;
+        Document doc = component.getDocument();
+        for (SelRange range : sels.subList(1, sels.size())) {
+            addCaret(carets, doc, range, length);
+        }
+    }
+
+    private void addCaret(EditorCaret carets, Document doc, SelRange range, int length) {
+        try {
+            Position dot = doc.createPosition(clamp(range.active(), length));
+            Position mark = doc.createPosition(clamp(range.anchor(), length));
+            carets.addCaret(dot, Position.Bias.Forward, mark, Position.Bias.Forward);
+        } catch (BadLocationException outsideTheDocument) {
+            LOG.log(Level.FINE, "beacon outside the document", outsideTheDocument);
+        }
     }
 
     @Override

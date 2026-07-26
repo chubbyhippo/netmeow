@@ -21,6 +21,7 @@ import io.github.chubbyhippo.netmeow.core.MeowState;
 import io.github.chubbyhippo.netmeow.core.UiPort;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.logging.Logger;
 import javax.swing.text.JTextComponent;
 import org.netbeans.api.editor.StickyWindowSupport;
 import org.openide.DialogDisplayer;
@@ -28,6 +29,10 @@ import org.openide.NotifyDescriptor;
 import org.openide.awt.StatusDisplayer;
 
 final class NbUi implements UiPort {
+
+    private static final Logger LOG = Logger.getLogger(NbUi.class.getName());
+    private static final int HINT_TIMEOUT_MS = 1000;
+    private static final Delay HINT_TIMEOUT = new Delay(HINT_TIMEOUT_MS);
 
     private final JTextComponent editor;
     private OverlayCanvas avy;
@@ -65,10 +70,16 @@ final class NbUi implements UiPort {
 
     @Override
     public void runCommand(String id) {
-        if (Commands.run(id)) return;
-        if (!NbActions.invoke(id)) {
-            hint("netmeow: no action for " + id);
+        if (Commands.run(id)) {
+            LOG.info("netmeow: ran own command " + id);
+            return;
         }
+        if (NbActions.invoke(id)) {
+            LOG.info("netmeow: invoked action " + id);
+            return;
+        }
+        LOG.info("netmeow: NO action for " + id + " (category " + NbActions.categoryOf(id) + ")");
+        hint("netmeow: no action for " + id);
     }
 
     @Override
@@ -83,20 +94,24 @@ final class NbUi implements UiPort {
 
     @Override
     public void showExpandHints(List<Integer> positions) {
+        if (editor == null) return;
         List<OverlayCanvas.Label> labels = new ArrayList<>();
         for (int i = 0; i < positions.size(); i++) {
             labels.add(new OverlayCanvas.Label(positions.get(i), Integer.toString(i)));
         }
         hintCanvas().show(labels, List.of(), true);
+        HINT_TIMEOUT.restart(this::clearExpandHints);
     }
 
     @Override
     public void clearExpandHints() {
+        HINT_TIMEOUT.stop();
         if (hints != null) hints.clear();
     }
 
     @Override
     public void showAvyMatches(List<EditorPort.OffsetRange> matches) {
+        if (editor == null) return;
         List<int[]> boxes = new ArrayList<>();
         for (EditorPort.OffsetRange range : matches) {
             boxes.add(new int[] {range.start(), range.end()});
@@ -106,6 +121,7 @@ final class NbUi implements UiPort {
 
     @Override
     public void showAvyLabels(List<AvyLabel> labels) {
+        if (editor == null) return;
         List<OverlayCanvas.Label> painted = new ArrayList<>();
         for (AvyLabel label : labels) {
             painted.add(new OverlayCanvas.Label(label.offset(), label.label()));
@@ -121,7 +137,7 @@ final class NbUi implements UiPort {
     @Override
     public void modeChanged(MeowState st) {
         ModeWidget.setMode(st.mode.name());
-        Carets.apply(editor, st.mode);
+        if (editor != null) Carets.apply(editor, st.mode);
     }
 
     @Override

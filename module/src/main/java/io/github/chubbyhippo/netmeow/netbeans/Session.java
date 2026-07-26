@@ -30,9 +30,19 @@ final class Session {
             Collections.synchronizedMap(new WeakHashMap<>());
 
     final NbEditor editor;
+
     final NbUi ui;
     final MeowState state;
     final Ctx ctx;
+
+    private static Session detached;
+
+    private Session() {
+        this.editor = null;
+        this.ui = new NbUi(null);
+        this.state = new MeowState();
+        this.ctx = new Ctx(new NoEditor(), new NbClipboard(), ui, state);
+    }
 
     private Session(JTextComponent component) {
         this.editor = new NbEditor(component);
@@ -47,6 +57,11 @@ final class Session {
 
     static Session of(JTextComponent component) {
         return BY_COMPONENT.computeIfAbsent(component, Session::new);
+    }
+
+    static synchronized Session detached() {
+        if (detached == null) detached = new Session();
+        return detached;
     }
 
     static void forget(JTextComponent component) {

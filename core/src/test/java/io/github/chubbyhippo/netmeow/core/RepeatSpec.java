@@ -44,10 +44,10 @@ class RepeatSpec extends SpecDsl {
                         List.of(
                                 "repeat nav . meow-next",
                                 "repeat nav , meow-prev",
-                                "repeat zoom i <action>(org.eclipse.ui.edit.text.zoomIn)"));
+                                "repeat zoom i <action>(zoom-text-in)"));
         assertEquals("meow-next", c.repeat.get("nav").get('.').command());
         assertEquals("meow-prev", c.repeat.get("nav").get(',').command());
-        assertEquals("org.eclipse.ui.edit.text.zoomIn", c.repeat.get("zoom").get('i').action());
+        assertEquals("zoom-text-in", c.repeat.get("zoom").get('i').action());
         assertTrue(c.errors.isEmpty());
     }
 
@@ -69,11 +69,12 @@ class RepeatSpec extends SpecDsl {
     @Test
     @DisplayName("given home rc repeat lines then they layer per key over the bundled group")
     void homeRcLayersOverBundledGroup() {
-        givenRc("repeat error , meow-prev\nrepeat error e <action>(org.eclipse.ui.file.save)");
+        givenRc(
+                "repeat error , meow-prev\nrepeat error e <action>(org-openide-actions-SaveAllAction)");
         Map<Character, Rc.Binding> g = Rc.repeatGroups().get("error");
-        assertEquals("org.eclipse.ui.navigate.next", g.get('.').action());
+        assertEquals("org-netbeans-core-actions-JumpNextAction", g.get('.').action());
         assertEquals("meow-prev", g.get(',').command());
-        assertEquals("org.eclipse.ui.file.save", g.get('e').action());
+        assertEquals("org-openide-actions-SaveAllAction", g.get('e').action());
     }
 
     @Test
@@ -82,16 +83,17 @@ class RepeatSpec extends SpecDsl {
         givenRc("repeat zoom o ignore");
         Map<Character, Rc.Binding> g = Rc.repeatGroups().get("zoom");
         assertFalse(g.containsKey('o'));
-        assertEquals("org.eclipse.ui.edit.text.zoomIn", g.get('i').action());
+        assertEquals("zoom-text-in", g.get('i').action());
     }
 
     @Test
     @DisplayName("the bundled default netmeowrc declares the init el repeat groups")
     void bundledRcDeclaresRepeatGroups() {
         Map<String, Map<Character, Rc.Binding>> d = Rc.defaults().repeat;
-        assertEquals("org.eclipse.ui.navigate.next", d.get("error").get('.').action());
-        assertEquals("org.eclipse.ui.navigate.previous", d.get("error").get(',').action());
+        assertEquals("org-netbeans-core-actions-JumpNextAction", d.get("error").get('.').action());
+        assertEquals("org-netbeans-core-actions-JumpPrevAction", d.get("error").get(',').action());
         assertEquals(Set.of('i', '=', 'o', '-'), d.get("zoom").keySet());
+        assertEquals(Set.of('n', 'p'), d.get("bookmark").keySet());
         assertNull(d.get("change"));
         assertNull(d.get("expand"));
     }
@@ -100,10 +102,10 @@ class RepeatSpec extends SpecDsl {
     @DisplayName("given the bundled rc then the tab repeat group cycles editor tabs")
     void bundledRcTabGroupCyclesTabs() {
         Map<Character, Rc.Binding> g = Rc.defaults().repeat.get("tab");
-        assertEquals("org.eclipse.ui.window.nextEditor", g.get('n').action());
-        assertEquals("org.eclipse.ui.window.previousEditor", g.get('p').action());
-        assertEquals("org.eclipse.ui.window.nextEditor", g.get('.').action());
-        assertEquals("org.eclipse.ui.window.previousEditor", g.get(',').action());
+        assertEquals("org-netbeans-core-windows-actions-NextTabAction", g.get('n').action());
+        assertEquals("org-netbeans-core-windows-actions-PreviousTabAction", g.get('p').action());
+        assertEquals("org-netbeans-core-windows-actions-NextTabAction", g.get('.').action());
+        assertEquals("org-netbeans-core-windows-actions-PreviousTabAction", g.get(',').action());
         assertEquals(Set.of('n', 'p', '.', ','), g.keySet());
     }
 

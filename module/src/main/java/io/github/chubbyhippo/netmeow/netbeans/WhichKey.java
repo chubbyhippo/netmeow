@@ -33,8 +33,8 @@ import javax.swing.JLayeredPane;
 import javax.swing.JPanel;
 import javax.swing.SwingUtilities;
 import javax.swing.Timer;
+import javax.swing.UIManager;
 import javax.swing.text.JTextComponent;
-import org.openide.windows.WindowManager;
 
 final class WhichKey {
 
@@ -50,7 +50,7 @@ final class WhichKey {
 
     static void schedule(JTextComponent editor, String kind, String buffer) {
         cancelPending();
-        if (!Rc.whichKeyEnabled() || editor == null) return;
+        if (!Rc.whichKeyEnabled()) return;
         pending =
                 new Timer(
                         Math.max(0, Rc.whichKeyDelayMs()),
@@ -84,8 +84,10 @@ final class WhichKey {
         Map<String, String> entries = entriesFor(kind, buffer);
         if (entries.isEmpty()) return;
         JLayeredPane pane = layeredPane();
+        if (pane == null) return;
         Rectangle area = editorAreaIn(pane, editor);
-        if (pane == null || area == null) return;
+        if (area == null) area = new Rectangle(0, 0, pane.getWidth(), pane.getHeight());
+        if (area.width <= 0 || area.height <= 0) return;
 
         JPanel panel = build(editor, entries);
         int rows = (entries.size() + COLUMNS - 1) / COLUMNS;
@@ -124,13 +126,15 @@ final class WhichKey {
         int rows = (entries.size() + COLUMNS - 1) / COLUMNS;
         JPanel panel = new JPanel(new GridLayout(rows, COLUMNS, PADDING, 0));
         panel.setBorder(BorderFactory.createEmptyBorder(PADDING, PADDING, PADDING, PADDING));
-        panel.setBackground(blend(editor.getBackground(), editor.getForeground()));
-        Font font = editor.getFont().deriveFont(Font.PLAIN);
+        Color background = editor != null ? editor.getBackground() : panelBackground();
+        Color foreground = editor != null ? editor.getForeground() : panelForeground();
+        panel.setBackground(blend(background, foreground));
+        Font font = (editor != null ? editor.getFont() : panel.getFont()).deriveFont(Font.PLAIN);
         entries.forEach(
                 (key, label) -> {
                     JLabel cell = new JLabel(key + "  " + label);
                     cell.setFont(font);
-                    cell.setForeground(editor.getForeground());
+                    cell.setForeground(foreground);
                     panel.add(cell);
                 });
         panel.setPreferredSize(new Dimension(0, rows * ROW_HEIGHT + PADDING * 2));
@@ -146,12 +150,22 @@ final class WhichKey {
     }
 
     private static JLayeredPane layeredPane() {
-        java.awt.Frame main = WindowManager.getDefault().getMainWindow();
-        return main instanceof javax.swing.JFrame frame ? frame.getLayeredPane() : null;
+        java.awt.Window active = AceOverlay.activeWindow();
+        return active instanceof javax.swing.RootPaneContainer host ? host.getLayeredPane() : null;
+    }
+
+    private static Color panelBackground() {
+        Color fromTheme = UIManager.getColor("Panel.background");
+        return fromTheme != null ? fromTheme : Color.LIGHT_GRAY;
+    }
+
+    private static Color panelForeground() {
+        Color fromTheme = UIManager.getColor("Panel.foreground");
+        return fromTheme != null ? fromTheme : Color.BLACK;
     }
 
     private static Rectangle editorAreaIn(JLayeredPane pane, JTextComponent editor) {
-        if (pane == null || !editor.isShowing()) return null;
+        if (pane == null || editor == null || !editor.isShowing()) return null;
         java.awt.Container host = editor.getParent();
         java.awt.Component sized = host != null ? host : editor;
         Point origin = SwingUtilities.convertPoint(sized, 0, 0, pane);

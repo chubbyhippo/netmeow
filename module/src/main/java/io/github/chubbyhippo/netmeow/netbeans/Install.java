@@ -19,9 +19,13 @@ package io.github.chubbyhippo.netmeow.netbeans;
 import io.github.chubbyhippo.netmeow.core.Chord;
 import io.github.chubbyhippo.netmeow.core.Chords;
 import io.github.chubbyhippo.netmeow.core.Engine;
+import io.github.chubbyhippo.netmeow.core.Rc;
 import java.awt.KeyEventDispatcher;
 import java.awt.KeyboardFocusManager;
+import java.awt.Window;
 import java.awt.event.KeyEvent;
+import java.util.logging.Logger;
+import javax.swing.MenuSelectionManager;
 import javax.swing.text.JTextComponent;
 import org.netbeans.api.editor.EditorRegistry;
 import org.openide.modules.OnStart;
@@ -29,10 +33,13 @@ import org.openide.modules.OnStart;
 @OnStart
 public final class Install implements Runnable {
 
+    private static final Logger LOG = Logger.getLogger(Install.class.getName());
+
     @Override
     public void run() {
-        RcFiles.load();
+        LOG.info("netmeow: installing, rc says " + RcFiles.load());
         KeyboardFocusManager.getCurrentKeyboardFocusManager().addKeyEventDispatcher(new KeyHook());
+        LOG.info("netmeow: key hook installed, " + Rc.chords().size() + " chords bound");
         EditorRegistry.addPropertyChangeListener(
                 event -> {
                     if (!EditorRegistry.FOCUS_GAINED_PROPERTY.equals(event.getPropertyName())) {
@@ -49,15 +56,49 @@ public final class Install implements Runnable {
 
         @Override
         public boolean dispatchKeyEvent(KeyEvent event) {
+            if (Keystrokes.finishingSwallowedKeystroke(event)) return true;
+            if (AceKeys.owns(event)) return true;
             if (event.getID() != KeyEvent.KEY_PRESSED) return false;
-            JTextComponent focused = EditorRegistry.focusedComponent();
-            if (focused == null || !focused.isFocusOwner()) return false;
+            if (TreeKeys.handle(event)) {
+                Keystrokes.swallowRestOfKeystroke();
+                return true;
+            }
+            JTextComponent focused = Editors.editorAt(Editors.focusOwner());
+            if (focused == null) return false;
             Session session = Session.of(focused);
             if (event.getKeyCode() == KeyEvent.VK_ESCAPE) {
+                if (popupShowing()) return false;
+                AvyTimer.stop();
                 return Engine.escapeKey(session.ctx);
             }
+            if (menuOpen()) return false;
             Chord chord = chordOf(event);
-            return chord != null && Chords.dispatch(session.ctx, chord);
+            if (chord == null) {
+                if (event.isControlDown() || event.isAltDown() || event.isMetaDown()) {
+                    LOG.info(
+                            "netmeow: modifier press not a chord, code="
+                                    + event.getKeyCode()
+                                    + " char="
+                                    + (int) event.getKeyChar());
+                }
+                return false;
+            }
+            boolean claimed = Chords.dispatch(session.ctx, chord);
+            LOG.info("netmeow: chord " + chord + (claimed ? " ran" : " unbound"));
+            if (claimed) Keystrokes.swallowRestOfKeystroke();
+            return claimed;
+        }
+
+        private static boolean menuOpen() {
+            return MenuSelectionManager.defaultManager().getSelectedPath().length > 0;
+        }
+
+        private static boolean popupShowing() {
+            if (menuOpen()) return true;
+            for (Window window : Window.getWindows()) {
+                if (window.isShowing() && window.getType() == Window.Type.POPUP) return true;
+            }
+            return false;
         }
 
         private static Chord chordOf(KeyEvent event) {
