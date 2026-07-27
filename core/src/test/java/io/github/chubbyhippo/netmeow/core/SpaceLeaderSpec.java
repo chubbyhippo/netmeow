@@ -102,7 +102,9 @@ class SpaceLeaderSpec extends SpecDsl {
     }
 
     @Test
-    @DisplayName("given a keypad key from the leader surface then the route clears after dispatch")
+    @DisplayName(
+            "given a terminal keypad key from the leader surface then the route clears after "
+                    + "dispatch")
     void routeClearsAfterKeypadDispatch() {
         given("plain text", "<caret>hello world");
         SpaceLeader.route("a tool window");

@@ -123,7 +123,7 @@ class ChordSpec extends SpecDsl {
     }
 
     @Test
-    @DisplayName("given a pressed chord then bindingFor resolves it and plain keys do not")
+    @DisplayName("given a pressed chord event then bindingFor resolves it and plain keys do not")
     void bindingForResolvesChordsOnly() {
         givenRc("");
         assertNotNull(Chords.bindingFor(Chord.parse("C-f")));
@@ -188,5 +188,16 @@ class ChordSpec extends SpecDsl {
         givenRc("");
         whenKeys(" mb");
         assertEquals(MeowMode.NORMAL, st.mode);
+    }
+
+    @Test
+    @DisplayName("given both spellings of a punctuation chord then they collapse to one binding")
+    void punctuationSpellingsCollapse() {
+        assertEquals(Chord.parse("M-<"), Chord.parse("alt shift COMMA"));
+        assertEquals(Chord.parse("M->"), Chord.parse("alt shift PERIOD"));
+        assertEquals(Chord.parse("M-{"), Chord.parse("alt shift OPEN_BRACKET"));
+        assertEquals(Chord.parse("C-/"), Chord.parse("control SLASH"));
+        assertEquals(Chord.parse("C-_"), Chord.parse("control shift MINUS"));
+        assertEquals(Chord.parse("M-^"), Chord.parse("alt shift 6"));
     }
 }

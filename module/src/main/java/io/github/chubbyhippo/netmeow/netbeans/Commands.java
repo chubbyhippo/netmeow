@@ -16,10 +16,16 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 package io.github.chubbyhippo.netmeow.netbeans;
 
+import io.github.chubbyhippo.netmeow.core.AceResize.Rect;
 import io.github.chubbyhippo.netmeow.core.Rc;
+import io.github.chubbyhippo.netmeow.core.Windmove;
 import io.github.chubbyhippo.netmeow.core.Windmove.Dir;
 import java.awt.Component;
+import java.awt.IllegalComponentStateException;
+import java.awt.Point;
 import java.awt.Rectangle;
+import java.awt.Window;
+import java.awt.geom.Rectangle2D;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -33,6 +39,7 @@ import java.util.function.Predicate;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.swing.SwingUtilities;
+import javax.swing.text.BadLocationException;
 import javax.swing.text.JTextComponent;
 import org.netbeans.api.editor.EditorRegistry;
 import org.openide.awt.StatusDisplayer;
@@ -91,12 +98,9 @@ final class Commands {
 
     private static void focusDirection(JTextComponent from, Dir dir) {
         if (from == null) return;
-        JTextComponent target = nearestIn(from, dir);
+        JTextComponent target = windowIn(from, dir);
         if (target == null) {
-            say(
-                    "No window "
-                            + dir.name().toLowerCase(java.util.Locale.ROOT)
-                            + " from selected window");
+            say(Windmove.noWindowMessage(dir));
             return;
         }
         TopComponent owner =
@@ -105,40 +109,42 @@ final class Commands {
         target.requestFocusInWindow();
     }
 
-    private static JTextComponent nearestIn(JTextComponent from, Dir dir) {
+    private static JTextComponent windowIn(JTextComponent from, Dir dir) {
+        Window frame = SwingUtilities.getWindowAncestor(from);
         Rectangle origin = Editors.screenBounds(from);
-        if (origin == null) return null;
-        JTextComponent best = null;
-        int bestDistance = Integer.MAX_VALUE;
+        if (frame == null || origin == null) return null;
+        Rectangle frameBounds = frame.getBounds();
+        List<Windmove.Candidate<JTextComponent>> candidates = new ArrayList<>();
         for (JTextComponent candidate : EditorRegistry.componentList()) {
             if (candidate == from || !candidate.isShowing()) continue;
+            if (SwingUtilities.getWindowAncestor(candidate) != frame) continue;
             Rectangle other = Editors.screenBounds(candidate);
-            if (other == null || !facing(origin, other, dir)) continue;
-            int distance = gap(origin, other, dir);
-            if (distance < bestDistance) {
-                bestDistance = distance;
-                best = candidate;
-            }
+            if (other == null) continue;
+            candidates.add(new Windmove.Candidate<>(candidate, relativeTo(frameBounds, other)));
         }
-        return best;
+        Rect current = relativeTo(frameBounds, origin);
+        int position = Windmove.reference(dir, current, caretIn(from, frameBounds));
+        Rect frameRect = new Rect(0, 0, frameBounds.width, frameBounds.height);
+        return Windmove.pick(dir, current, position, frameRect, candidates);
     }
 
-    private static boolean facing(Rectangle origin, Rectangle other, Dir dir) {
-        return switch (dir) {
-            case LEFT -> other.x + other.width <= origin.x;
-            case RIGHT -> other.x >= origin.x + origin.width;
-            case UP -> other.y + other.height <= origin.y;
-            case DOWN -> other.y >= origin.y + origin.height;
-        };
+    private static Rect relativeTo(Rectangle frame, Rectangle bounds) {
+        return new Rect(bounds.x - frame.x, bounds.y - frame.y, bounds.width, bounds.height);
     }
 
-    private static int gap(Rectangle origin, Rectangle other, Dir dir) {
-        return switch (dir) {
-            case LEFT -> origin.x - (other.x + other.width);
-            case RIGHT -> other.x - (origin.x + origin.width);
-            case UP -> origin.y - (other.y + other.height);
-            case DOWN -> other.y - (origin.y + origin.height);
-        };
+    private static Windmove.Caret caretIn(JTextComponent editor, Rectangle frame) {
+        try {
+            Rectangle2D caret = editor.modelToView2D(editor.getCaretPosition());
+            if (caret == null || !editor.getVisibleRect().contains(caret.getX(), caret.getY())) {
+                return null;
+            }
+            Point onScreen = new Point((int) caret.getX(), (int) caret.getY());
+            SwingUtilities.convertPointToScreen(onScreen, editor);
+            return new Windmove.Caret(onScreen.x - frame.x, onScreen.y - frame.y);
+        } catch (BadLocationException | IllegalComponentStateException e) {
+            LOG.log(Level.FINE, "no caret position for windmove", e);
+            return null;
+        }
     }
 
     private static void openUserRc(JTextComponent editor) {

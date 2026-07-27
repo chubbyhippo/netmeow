@@ -40,6 +40,8 @@ import javax.swing.JMenu;
 import javax.swing.JMenuBar;
 import javax.swing.JMenuItem;
 import javax.swing.JPopupMenu;
+import javax.swing.JScrollBar;
+import javax.swing.JSpinner;
 import javax.swing.JTabbedPane;
 import javax.swing.JTable;
 import javax.swing.JTree;
@@ -62,7 +64,12 @@ final class AceClicks {
     private static final String MENU_HINT = "ace-click: pick a menu entry";
     private static final Delay MENU_LABELS = new Delay(MENU_SETTLE_MILLIS);
 
-    record Target(Window window, Rectangle onScreen, Runnable click, Runnable secondaryClick) {}
+    record Target(
+            Component owner,
+            Window window,
+            Rectangle onScreen,
+            Runnable click,
+            Runnable secondaryClick) {}
 
     private AceClicks() {}
 
@@ -81,10 +88,14 @@ final class AceClicks {
     private static List<Target> collect(List<? extends Container> roots) {
         List<Target> found = new ArrayList<>();
         for (Container root : roots) walk(root, found);
+        sortByScreenOrder(found);
+        return found;
+    }
+
+    static void sortByScreenOrder(List<Target> found) {
         found.sort(
                 Comparator.comparingInt((Target target) -> target.onScreen().y)
                         .thenComparingInt(target -> target.onScreen().x));
-        return found;
     }
 
     private static boolean begin(List<Target> found, String hint) {
@@ -189,7 +200,11 @@ final class AceClicks {
         MENU_LABELS.restart(AceClicks::labelOpenMenus);
     }
 
-    private static void fire(Target target, boolean secondary) {
+    static void fire(Target target, boolean secondary) {
+        if (target.owner() != null && target.owner().getParent() == null) {
+            say("netmeow: that target is gone");
+            return;
+        }
         try {
             Runnable action = secondary ? target.secondaryClick() : target.click();
             if (action != null) action.run();
@@ -257,13 +272,14 @@ final class AceClicks {
         boolean inMenu = owner instanceof MenuElement;
         found.add(
                 new Target(
+                        owner,
                         window,
                         onScreen,
                         closingOpenMenus(click, inMenu),
                         closingOpenMenus(secondaryClick, inMenu)));
     }
 
-    private static Runnable closingOpenMenus(Runnable action, boolean inMenu) {
+    static Runnable closingOpenMenus(Runnable action, boolean inMenu) {
         if (inMenu) return action;
         return () -> {
             MenuSelectionManager.defaultManager().clearSelectedPath();
@@ -272,14 +288,29 @@ final class AceClicks {
     }
 
     static Runnable clickOf(Component component) {
+        if (component == null || !component.isEnabled()) return null;
         if (component instanceof JMenu menu) return () -> openMenu(menu);
         if (component instanceof JMenuItem item) return () -> invokeMenuItem(item);
-        if (component instanceof AbstractButton button) return button::doClick;
+        if (component instanceof AbstractButton button) {
+            return wrappedControlChild(component.getParent()) ? null : button::doClick;
+        }
         if (component instanceof JComboBox<?> combo) return () -> combo.setPopupVisible(true);
-        if (component instanceof JTextComponent text && text.isEditable()) {
-            return text::requestFocusInWindow;
+        if (component instanceof JTextComponent text) {
+            return standaloneTextInput(text) ? text::requestFocusInWindow : null;
         }
         return null;
+    }
+
+    private static boolean wrappedControlChild(Component parent) {
+        return parent instanceof JComboBox<?>
+                || parent instanceof JSpinner
+                || parent instanceof JScrollBar;
+    }
+
+    private static boolean standaloneTextInput(JTextComponent text) {
+        return text.isEditable()
+                && SwingUtilities.getAncestorOfClass(JComboBox.class, text) == null
+                && SwingUtilities.getAncestorOfClass(JSpinner.class, text) == null;
     }
 
     private static void openMenu(JMenu menu) {

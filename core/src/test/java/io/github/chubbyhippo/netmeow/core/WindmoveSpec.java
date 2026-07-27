@@ -18,15 +18,39 @@
 package io.github.chubbyhippo.netmeow.core;
 
 import static io.github.chubbyhippo.netmeow.core.Windmove.noWindowMessage;
+import static io.github.chubbyhippo.netmeow.core.Windmove.pick;
 import static io.github.chubbyhippo.netmeow.core.Windmove.plan;
+import static io.github.chubbyhippo.netmeow.core.Windmove.reference;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
+import io.github.chubbyhippo.netmeow.core.AceResize.Rect;
+import io.github.chubbyhippo.netmeow.core.Windmove.Candidate;
+import io.github.chubbyhippo.netmeow.core.Windmove.Caret;
 import io.github.chubbyhippo.netmeow.core.Windmove.DiffSideView;
 import io.github.chubbyhippo.netmeow.core.Windmove.Dir;
+import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 class WindmoveSpec extends SpecDsl {
+
+    private static final Rect FRAME = new Rect(0, 0, 80, 25);
+    private static final Rect L1 = new Rect(0, 0, 40, 12);
+    private static final Rect L2 = new Rect(0, 12, 40, 6);
+    private static final Rect L3 = new Rect(0, 18, 40, 6);
+    private static final Rect R = new Rect(40, 0, 40, 24);
+
+    private static List<Candidate<String>> stackedWithout(String excluded) {
+        List<Candidate<String>> all =
+                List.of(
+                        new Candidate<>("L1", L1),
+                        new Candidate<>("L2", L2),
+                        new Candidate<>("L3", L3),
+                        new Candidate<>("R", R));
+        return all.stream().filter(candidate -> !candidate.window().equals(excluded)).toList();
+    }
+
     @Test
     @DisplayName(
             "given a side-by-side diff then left from the modified pane crosses to the original")
@@ -99,5 +123,75 @@ class WindmoveSpec extends SpecDsl {
         assertEquals(AceWindow.Plan.OTHER, AceWindow.plan(2));
         assertEquals(AceWindow.Plan.LABELS, AceWindow.plan(3));
         assertEquals(AceWindow.Plan.LABELS, AceWindow.plan(9));
+    }
+
+    @Test
+    @DisplayName("given a stacked column when left then the window at the caret row is entered")
+    void stackedColumnEntersCaretRow() {
+        assertEquals("L1", pick(Dir.LEFT, R, 1, FRAME, stackedWithout("R")));
+        assertEquals("L2", pick(Dir.LEFT, R, 14, FRAME, stackedWithout("R")));
+        assertEquals("L3", pick(Dir.LEFT, R, 23, FRAME, stackedWithout("R")));
+    }
+
+    @Test
+    @DisplayName("given a visible caret then it is the reference, else the near edge plus one")
+    void caretIsTheReference() {
+        assertEquals(14, reference(Dir.LEFT, R, new Caret(60, 14)));
+        assertEquals(1, reference(Dir.LEFT, R, null));
+        assertEquals(1, reference(Dir.LEFT, R, new Caret(60, 99)));
+        assertEquals(60, reference(Dir.UP, R, new Caret(60, 14)));
+        assertEquals(41, reference(Dir.UP, R, null));
+    }
+
+    @Test
+    @DisplayName("given the middle of the stack then it moves in all four directions")
+    void middleOfStackMovesEveryWay() {
+        int caretY = 14;
+        int caretX = 5;
+        assertEquals("R", pick(Dir.RIGHT, L2, caretY, FRAME, stackedWithout("L2")));
+        assertEquals("L1", pick(Dir.UP, L2, caretX, FRAME, stackedWithout("L2")));
+        assertEquals("L3", pick(Dir.DOWN, L2, caretX, FRAME, stackedWithout("L2")));
+    }
+
+    @Test
+    @DisplayName("given a two by two grid then the adjacent window is picked")
+    void gridPicksTheAdjacentWindow() {
+        Rect a = new Rect(0, 0, 40, 12);
+        Rect b = new Rect(40, 0, 40, 12);
+        Rect c = new Rect(0, 12, 40, 12);
+        Rect d = new Rect(40, 12, 40, 12);
+        List<Candidate<String>> fromD =
+                List.of(new Candidate<>("A", a), new Candidate<>("B", b), new Candidate<>("C", c));
+        assertEquals("C", pick(Dir.LEFT, d, 18, FRAME, fromD));
+        assertEquals("B", pick(Dir.UP, d, 60, FRAME, fromD));
+        List<Candidate<String>> fromA =
+                List.of(new Candidate<>("B", b), new Candidate<>("C", c), new Candidate<>("D", d));
+        assertEquals("B", pick(Dir.RIGHT, a, 5, FRAME, fromA));
+        assertEquals("C", pick(Dir.DOWN, a, 5, FRAME, fromA));
+        assertNull(pick(Dir.LEFT, a, 5, FRAME, fromA));
+    }
+
+    @Test
+    @DisplayName("given a window covering the caret then it beats a nearer one outside the band")
+    void coveringWindowBeatsNearerOutsideTheBand() {
+        Rect current = new Rect(0, 100, 50, 50);
+        Rect wide = new Rect(0, 0, 200, 200);
+        List<Candidate<String>> candidates =
+                List.of(
+                        new Candidate<>("covering", new Rect(0, 20, 50, 40)),
+                        new Candidate<>("nearer", new Rect(60, 95, 40, 5)));
+        assertEquals("covering", pick(Dir.UP, current, 10, wide, candidates));
+    }
+
+    @Test
+    @DisplayName("given only windows outside the band then the smallest band distance wins")
+    void smallestBandDistanceWins() {
+        Rect current = new Rect(0, 100, 50, 50);
+        Rect wide = new Rect(0, 0, 200, 200);
+        List<Candidate<String>> candidates =
+                List.of(
+                        new Candidate<>("bandFar", new Rect(120, 50, 40, 40)),
+                        new Candidate<>("bandNear", new Rect(60, 20, 40, 40)));
+        assertEquals("bandNear", pick(Dir.UP, current, 10, wide, candidates));
     }
 }

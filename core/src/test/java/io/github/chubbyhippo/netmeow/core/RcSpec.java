@@ -452,4 +452,26 @@ class RcSpec extends SpecDsl {
         m.put('\'', "repeat");
         return m;
     }
+
+    @Test
+    @DisplayName("given no home rc then the first SPC c m seeds it with the full bundled keymap")
+    void bundledSeedCarriesTheWholeKeymap() {
+        List<String> bundled = Rc.bundledLines();
+        assertFalse(bundled.isEmpty());
+        assertTrue(bundled.stream().anyMatch(line -> line.startsWith("nmap j meow-next")));
+        assertTrue(bundled.stream().anyMatch(line -> line.startsWith("mmap j meow-next")));
+        assertTrue(bundled.stream().anyMatch(line -> line.startsWith("cmap C-f forward-char")));
+        assertTrue(bundled.stream().anyMatch(line -> line.startsWith("map <leader>")));
+    }
+
+    @Test
+    @DisplayName("given a space-keyed keypad entry then SPC SPC dispatches it")
+    void spaceKeypadEntryDispatches() {
+        given("spc spc dispatch", "<caret>hello");
+        givenRc("map <leader><Space> meow-insert");
+        whenKeys(" ");
+        thenMode(MeowMode.KEYPAD);
+        whenKeys(" ");
+        thenMode(MeowMode.INSERT);
+    }
 }

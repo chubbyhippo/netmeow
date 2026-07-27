@@ -36,13 +36,15 @@ class AttachSpec {
     }
 
     @Test
-    @DisplayName("given a plain text editor then meow attaches in NORMAL")
+    @DisplayName("given a main file editor then meow attaches in NORMAL")
     void textEditorAttaches() {
         assertEquals(MeowMode.NORMAL, attachMode("text"));
     }
 
     @Test
-    @DisplayName("given the VCS commit message box then meow attaches in NORMAL")
+    @DisplayName(
+            "given a multi-line writable dialog editor like the commit message box then meow "
+                    + "attaches in NORMAL")
     void commitBoxAttaches() {
         assertEquals(MeowMode.NORMAL, attachMode("commit"));
         assertTrue(isWritable("commit"));
@@ -63,7 +65,7 @@ class AttachSpec {
     }
 
     @Test
-    @DisplayName("given a one-line field then meow stays away")
+    @DisplayName("given a one-line dialog field then meow stays away")
     void oneLineFieldStaysAway() {
         assertNull(attachMode("oneline"));
     }
@@ -73,5 +75,16 @@ class AttachSpec {
     void dialogInputsStayAway() {
         assertNull(attachMode("comment"));
         assertNull(attachMode("search"));
+    }
+
+    @Test
+    @DisplayName(
+            "given a read-only main file editor then meow attaches in NORMAL like Emacs read-only"
+                    + " buffers")
+    void readOnlyEditorsAttachInNormal() {
+        assertEquals(MeowMode.NORMAL, AttachPolicy.attachMode("diff"));
+        assertEquals(MeowMode.NORMAL, AttachPolicy.attachMode("output"));
+        assertFalse(AttachPolicy.isWritable("diff"));
+        assertFalse(AttachPolicy.isWritable("output"));
     }
 }

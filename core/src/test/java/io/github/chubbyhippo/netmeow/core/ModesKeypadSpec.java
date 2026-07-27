@@ -40,7 +40,7 @@ class ModesKeypadSpec extends SpecDsl {
     }
 
     @Test
-    @DisplayName("given beacon cursors in NORMAL when escape then they collapse")
+    @DisplayName("given beacon carets in NORMAL when escape then they collapse")
     void escapeCollapsesBeaconCursors() {
         given("repeats", "<caret>foo bar foo");
         whenKeys(",bG");
@@ -178,7 +178,7 @@ class ModesKeypadSpec extends SpecDsl {
     }
 
     @Test
-    @DisplayName("given INSERT then the adapter is told to swap the cursor, and back on escape")
+    @DisplayName("given NORMAL then a block cursor, given INSERT then a bar cursor")
     void insertSwapsCursorAndBack() {
         given("word", "<caret>hello");
         whenKeys("i");
@@ -221,5 +221,41 @@ class ModesKeypadSpec extends SpecDsl {
         whenKeys("w");
         assertTrue(pressEsc());
         thenNoSelection();
+    }
+
+    @Test
+    @DisplayName("given a selection when escape then the selection state resets too")
+    void escapeResetsSelectionState() {
+        given("two words", "<caret>hello world");
+        whenKeys("w");
+        assertEquals(SelType.WORD, st.selType);
+        assertTrue(st.selExpand);
+        pressEsc();
+        assertNull(selectedText());
+        assertEquals(SelType.NONE, st.selType);
+        assertFalse(st.selExpand);
+        assertNull(st.lastSelection);
+    }
+
+    @Test
+    @DisplayName("given an rc key bound to an IDE action then the action performs")
+    void rcKeyRunsHostAction() {
+        given("word", "<caret>hello");
+        givenRc("nmap z <action>(org-openide-actions-SaveAllAction)");
+        whenKeys("z");
+        assertEquals(List.of("org-openide-actions-SaveAllAction"), ui.ran);
+        thenMode(MeowMode.NORMAL);
+    }
+
+    @Test
+    @DisplayName("given a keypad entry bound to an IDE action then it performs and KEYPAD exits")
+    void keypadEntryRunsHostActionAndExits() {
+        given("word", "<caret>hello");
+        givenRc("map <leader>zz <action>(org-openide-actions-SaveAllAction)");
+        whenKeys(" ");
+        thenMode(MeowMode.KEYPAD);
+        whenKeys("zz");
+        assertEquals(List.of("org-openide-actions-SaveAllAction"), ui.ran);
+        thenMode(MeowMode.NORMAL);
     }
 }

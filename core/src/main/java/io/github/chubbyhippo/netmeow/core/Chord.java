@@ -17,8 +17,50 @@
 package io.github.chubbyhippo.netmeow.core;
 
 import java.util.Locale;
+import java.util.Map;
 
 public record Chord(boolean ctrl, boolean alt, boolean shift, char key) {
+
+    private static final Map<String, Character> PLAIN_KEYS =
+            Map.ofEntries(
+                    Map.entry("SPC", ' '),
+                    Map.entry("SPACE", ' '),
+                    Map.entry("TAB", '\t'),
+                    Map.entry("COMMA", ','),
+                    Map.entry("PERIOD", '.'),
+                    Map.entry("SLASH", '/'),
+                    Map.entry("SEMICOLON", ';'),
+                    Map.entry("QUOTE", '\''),
+                    Map.entry("OPEN_BRACKET", '['),
+                    Map.entry("CLOSE_BRACKET", ']'),
+                    Map.entry("BACK_SLASH", '\\'),
+                    Map.entry("MINUS", '-'),
+                    Map.entry("EQUALS", '='),
+                    Map.entry("BACK_QUOTE", '`'));
+
+    private static final Map<String, Character> SHIFTED_KEYS =
+            Map.ofEntries(
+                    Map.entry("COMMA", '<'),
+                    Map.entry("PERIOD", '>'),
+                    Map.entry("SLASH", '?'),
+                    Map.entry("SEMICOLON", ':'),
+                    Map.entry("QUOTE", '"'),
+                    Map.entry("OPEN_BRACKET", '{'),
+                    Map.entry("CLOSE_BRACKET", '}'),
+                    Map.entry("BACK_SLASH", '|'),
+                    Map.entry("MINUS", '_'),
+                    Map.entry("EQUALS", '+'),
+                    Map.entry("BACK_QUOTE", '~'),
+                    Map.entry("1", '!'),
+                    Map.entry("2", '@'),
+                    Map.entry("3", '#'),
+                    Map.entry("4", '$'),
+                    Map.entry("5", '%'),
+                    Map.entry("6", '^'),
+                    Map.entry("7", '&'),
+                    Map.entry("8", '*'),
+                    Map.entry("9", '('),
+                    Map.entry("0", ')'));
 
     public static Chord parse(String text) {
         if (text == null) return null;
@@ -44,9 +86,10 @@ public record Chord(boolean ctrl, boolean alt, boolean shift, char key) {
                 }
             }
         }
-        String key = named(tokens[tokens.length - 1]);
-        if (key.length() != 1 || (!ctrl && !alt)) return null;
-        return new Chord(ctrl, alt, shift, Character.toLowerCase(key.charAt(0)));
+        Character key = keyNamed(tokens[tokens.length - 1], shift);
+        if (key == null || (!ctrl && !alt)) return null;
+        boolean shiftedLetter = Character.isLetter(key) && shift;
+        return new Chord(ctrl, alt, shiftedLetter, Character.toLowerCase(key));
     }
 
     private static Chord parsePrefixSpelling(String text) {
@@ -65,9 +108,9 @@ public record Chord(boolean ctrl, boolean alt, boolean shift, char key) {
             }
             rest = rest.substring(2);
         }
-        rest = named(rest);
-        if (rest.length() != 1 || (!ctrl && !alt)) return null;
-        char key = rest.charAt(0);
+        Character named = keyNamed(rest, shift);
+        if (named == null || (!ctrl && !alt)) return null;
+        char key = named;
         if (Character.isUpperCase(key)) {
             shift = true;
             key = Character.toLowerCase(key);
@@ -75,12 +118,15 @@ public record Chord(boolean ctrl, boolean alt, boolean shift, char key) {
         return new Chord(ctrl, alt, shift, key);
     }
 
-    private static String named(String key) {
-        return switch (key.toUpperCase(Locale.ROOT)) {
-            case "SPC", "SPACE" -> " ";
-            case "TAB" -> "\t";
-            default -> key;
-        };
+    private static Character keyNamed(String token, boolean shift) {
+        String name = token.toUpperCase(Locale.ROOT);
+        if (shift) {
+            Character shifted = SHIFTED_KEYS.get(name);
+            if (shifted != null) return shifted;
+        }
+        Character plain = PLAIN_KEYS.get(name);
+        if (plain != null) return plain;
+        return token.length() == 1 ? token.charAt(0) : null;
     }
 
     public String spelling() {
