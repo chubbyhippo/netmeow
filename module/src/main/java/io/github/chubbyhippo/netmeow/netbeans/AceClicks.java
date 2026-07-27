@@ -20,75 +20,126 @@ import io.github.chubbyhippo.netmeow.core.AceClick;
 import io.github.chubbyhippo.netmeow.core.UiPort;
 import java.awt.Component;
 import java.awt.Container;
+import java.awt.Point;
 import java.awt.Rectangle;
 import java.awt.Window;
 import java.awt.event.KeyEvent;
 import java.awt.event.MouseEvent;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.swing.AbstractButton;
 import javax.swing.JComboBox;
 import javax.swing.JComponent;
 import javax.swing.JList;
+import javax.swing.JMenu;
+import javax.swing.JMenuBar;
+import javax.swing.JMenuItem;
 import javax.swing.JPopupMenu;
 import javax.swing.JTabbedPane;
 import javax.swing.JTable;
 import javax.swing.JTree;
+import javax.swing.MenuElement;
+import javax.swing.MenuSelectionManager;
 import javax.swing.SwingUtilities;
 import javax.swing.text.JTextComponent;
+import org.netbeans.swing.tabcontrol.TabDisplayer;
 import org.openide.awt.StatusDisplayer;
+import org.openide.windows.TopComponent;
 
 final class AceClicks {
 
     private static final Logger LOG = Logger.getLogger(AceClicks.class.getName());
     private static final int MIN_SIZE = 4;
+    private static final int TAB_POPUP_INSET = 8;
+    private static final int MENU_SETTLE_MILLIS = 80;
+    private static final String PICK_HINT =
+            "ace-click: pick a target (capital labels open its context menu)";
+    private static final String MENU_HINT = "ace-click: pick a menu entry";
+    private static final Delay MENU_LABELS = new Delay(MENU_SETTLE_MILLIS);
 
-    record Target(Rectangle onScreen, Runnable click, Runnable secondaryClick) {}
+    record Target(Window window, Rectangle onScreen, Runnable click, Runnable secondaryClick) {}
 
     private AceClicks() {}
 
     static void run() {
         AceKeys.cancel();
-        Window active = AceOverlay.activeWindow();
-        if (active == null) return;
-        List<Target> found = collect(active);
-        LOG.info("netmeow: ace-click found " + found.size() + " targets in " + active.getName());
+        MENU_LABELS.stop();
+        List<Target> found = collect(roots());
+        LOG.info("netmeow: ace-click found " + found.size() + " targets");
         if (found.isEmpty()) {
             say("netmeow: nothing clickable");
             return;
         }
-        AceOverlay overlay = AceOverlay.mountOn(active);
-        if (overlay == null) {
-            say("netmeow: no window to label");
-            return;
-        }
-        AceKeys.begin(new Pick(found, overlay));
+        if (!begin(found, PICK_HINT)) say("netmeow: no window to label");
     }
 
-    static List<Target> collect(Container root) {
+    private static List<Target> collect(List<? extends Container> roots) {
         List<Target> found = new ArrayList<>();
-        walk(root, found);
+        for (Container root : roots) walk(root, found);
         found.sort(
-                Comparator.comparingInt((Target t) -> t.onScreen().y)
-                        .thenComparingInt(t -> t.onScreen().x));
+                Comparator.comparingInt((Target target) -> target.onScreen().y)
+                        .thenComparingInt(target -> target.onScreen().x));
         return found;
+    }
+
+    private static boolean begin(List<Target> found, String hint) {
+        Map<Window, AceOverlay> overlays = new LinkedHashMap<>();
+        for (Window window : found.stream().map(Target::window).distinct().toList()) {
+            AceOverlay overlay = AceOverlay.mountOn(window);
+            if (overlay != null) overlays.put(window, overlay);
+        }
+        List<Target> paintable =
+                found.stream().filter(target -> overlays.containsKey(target.window())).toList();
+        if (paintable.isEmpty()) {
+            overlays.values().forEach(AceOverlay::dispose);
+            return false;
+        }
+        AceKeys.begin(new Pick(paintable, overlays, hint));
+        return true;
+    }
+
+    private static void labelOpenMenus() {
+        List<Target> found = collect(openMenus());
+        if (found.isEmpty()) return;
+        begin(found, MENU_HINT);
+    }
+
+    private static List<Container> roots() {
+        List<Container> roots = new ArrayList<>();
+        Window active = AceOverlay.activeWindow();
+        if (active != null) roots.add(active);
+        for (JPopupMenu menu : openMenus()) {
+            Window window = SwingUtilities.getWindowAncestor(menu);
+            if (window != null && !roots.contains(window)) roots.add(window);
+        }
+        return roots;
+    }
+
+    private static List<JPopupMenu> openMenus() {
+        List<JPopupMenu> menus = new ArrayList<>();
+        for (MenuElement element : MenuSelectionManager.defaultManager().getSelectedPath()) {
+            if (element instanceof JPopupMenu menu && menu.isShowing()) menus.add(menu);
+        }
+        return menus;
     }
 
     private static final class Pick implements AceKeys.Session {
 
         private final List<Target> targets;
-        private final AceOverlay overlay;
+        private final Map<Window, AceOverlay> overlays;
         private final AceClick.Session session;
 
-        private Pick(List<Target> targets, AceOverlay overlay) {
+        private Pick(List<Target> targets, Map<Window, AceOverlay> overlays, String hint) {
             this.targets = targets;
-            this.overlay = overlay;
+            this.overlays = overlays;
             this.session = AceClick.begin(targets.size());
             paint();
-            say("ace-click: pick a target (capital labels open its context menu)");
+            say(hint);
         }
 
         @Override
@@ -102,7 +153,8 @@ final class AceClicks {
             AceClick.Result result = AceClick.press(session, key);
             if (result instanceof AceClick.Pick picked) {
                 Target target = targets.get(picked.index());
-                return () -> SwingUtilities.invokeLater(() -> fire(target, secondary));
+                return () ->
+                        SwingUtilities.invokeLater(() -> fireThenLabelMenus(target, secondary));
             }
             if (result instanceof AceClick.Descend) {
                 paint();
@@ -113,19 +165,28 @@ final class AceClicks {
 
         @Override
         public void cancel() {
-            overlay.dispose();
+            overlays.values().forEach(AceOverlay::dispose);
         }
 
         private void paint() {
-            List<AceOverlay.Badge> badges = new ArrayList<>();
+            Map<Window, List<AceOverlay.Badge>> byWindow = new LinkedHashMap<>();
             for (UiPort.AvyLabel label : AceClick.labels(session)) {
                 Target target = targets.get(label.offset());
-                badges.add(
-                        new AceOverlay.Badge(
-                                target.onScreen(), label.label(), AceOverlay.Placement.CORNER));
+                byWindow.computeIfAbsent(target.window(), window -> new ArrayList<>())
+                        .add(
+                                new AceOverlay.Badge(
+                                        target.onScreen(),
+                                        label.label(),
+                                        AceOverlay.Placement.CORNER));
             }
-            overlay.show(badges);
+            overlays.forEach(
+                    (window, overlay) -> overlay.show(byWindow.getOrDefault(window, List.of())));
         }
+    }
+
+    private static void fireThenLabelMenus(Target target, boolean secondary) {
+        fire(target, secondary);
+        MENU_LABELS.restart(AceClicks::labelOpenMenus);
     }
 
     private static void fire(Target target, boolean secondary) {
@@ -141,6 +202,10 @@ final class AceClicks {
     private static void walk(Component component, List<Target> found) {
         if (component == null || !component.isVisible() || !component.isShowing()) return;
         add(component, found);
+        if (component instanceof TabDisplayer displayer) {
+            addPaintedTabs(displayer, found);
+            return;
+        }
         if (component instanceof JTabbedPane tabs) {
             addTabs(tabs, found);
             walkChildren(tabs, found);
@@ -173,18 +238,42 @@ final class AceClicks {
         if (click == null) return;
         Rectangle bounds = boundsOnScreen(component, new Rectangle(component.getSize()));
         if (bounds == null) return;
+        addTarget(
+                found,
+                component,
+                bounds,
+                click,
+                () -> showPopup(component, component.getWidth() / 2, component.getHeight() / 2));
+    }
+
+    private static void addTarget(
+            List<Target> found,
+            Component owner,
+            Rectangle onScreen,
+            Runnable click,
+            Runnable secondaryClick) {
+        Window window = SwingUtilities.getWindowAncestor(owner);
+        if (window == null) return;
+        boolean inMenu = owner instanceof MenuElement;
         found.add(
                 new Target(
-                        bounds,
-                        click,
-                        () ->
-                                showPopup(
-                                        component,
-                                        component.getWidth() / 2,
-                                        component.getHeight() / 2)));
+                        window,
+                        onScreen,
+                        closingOpenMenus(click, inMenu),
+                        closingOpenMenus(secondaryClick, inMenu)));
+    }
+
+    private static Runnable closingOpenMenus(Runnable action, boolean inMenu) {
+        if (inMenu) return action;
+        return () -> {
+            MenuSelectionManager.defaultManager().clearSelectedPath();
+            action.run();
+        };
     }
 
     static Runnable clickOf(Component component) {
+        if (component instanceof JMenu menu) return () -> openMenu(menu);
+        if (component instanceof JMenuItem item) return () -> invokeMenuItem(item);
         if (component instanceof AbstractButton button) return button::doClick;
         if (component instanceof JComboBox<?> combo) return () -> combo.setPopupVisible(true);
         if (component instanceof JTextComponent text && text.isEditable()) {
@@ -193,21 +282,96 @@ final class AceClicks {
         return null;
     }
 
+    private static void openMenu(JMenu menu) {
+        MenuElement[] path = menuPathTo(menu);
+        if (path.length < 2) {
+            menu.doClick();
+            return;
+        }
+        MenuSelectionManager.defaultManager().setSelectedPath(path);
+    }
+
+    static MenuElement[] menuPathTo(JMenu menu) {
+        List<MenuElement> path = new ArrayList<>();
+        collectMenuPath(menu, path);
+        path.add(menu.getPopupMenu());
+        return path.toArray(new MenuElement[0]);
+    }
+
+    private static void collectMenuPath(Component component, List<MenuElement> path) {
+        if (component instanceof JMenuBar bar) {
+            path.add(bar);
+            return;
+        }
+        if (component instanceof JPopupMenu menu) {
+            collectMenuPath(menu.getInvoker(), path);
+            path.add(menu);
+            return;
+        }
+        if (component instanceof JMenu menu) {
+            collectMenuPath(menu.getParent(), path);
+            path.add(menu);
+        }
+    }
+
+    private static void invokeMenuItem(JMenuItem item) {
+        MenuSelectionManager.defaultManager().clearSelectedPath();
+        item.doClick(0);
+    }
+
+    private static void addPaintedTabs(TabDisplayer displayer, List<Target> found) {
+        Rectangle visible = displayer.getVisibleRect();
+        for (int index = 0; index < displayer.getModel().size(); index++) {
+            Rectangle tab = displayer.getTabRect(index, new Rectangle());
+            if (tab == null || tab.isEmpty() || !visible.intersects(tab)) continue;
+            Rectangle shown = tab.intersection(visible);
+            Rectangle bounds = boundsOnScreen(displayer, shown);
+            if (bounds == null) continue;
+            int at = index;
+            Point popupAt = popupPointIn(shown);
+            addTarget(
+                    found,
+                    displayer,
+                    bounds,
+                    () -> selectPaintedTab(displayer, at),
+                    () -> {
+                        selectPaintedTab(displayer, at);
+                        showPopup(displayer, popupAt.x, popupAt.y);
+                    });
+        }
+    }
+
+    static Point popupPointIn(Rectangle tab) {
+        return new Point(tab.x + Math.min(TAB_POPUP_INSET, tab.width / 2), tab.y + tab.height / 2);
+    }
+
+    private static void selectPaintedTab(TabDisplayer displayer, int index) {
+        if (index >= displayer.getModel().size()) return;
+        Component tab = displayer.getModel().getTab(index).getComponent();
+        if (tab instanceof TopComponent top) {
+            top.requestActive();
+            return;
+        }
+        displayer.getSelectionModel().setSelectedIndex(index);
+        if (tab != null) tab.requestFocusInWindow();
+    }
+
     private static void addTabs(JTabbedPane tabs, List<Target> found) {
         for (int i = 0; i < tabs.getTabCount(); i++) {
             if (!tabs.isEnabledAt(i)) continue;
             Rectangle bounds = boundsOnScreen(tabs, tabs.getBoundsAt(i));
             if (bounds == null) continue;
             int index = i;
-            found.add(
-                    new Target(
-                            bounds,
-                            () -> tabs.setSelectedIndex(index),
-                            () -> {
-                                tabs.setSelectedIndex(index);
-                                Rectangle at = tabs.getBoundsAt(index);
-                                showPopup(tabs, at.x + at.width / 2, at.y + at.height / 2);
-                            }));
+            addTarget(
+                    found,
+                    tabs,
+                    bounds,
+                    () -> tabs.setSelectedIndex(index),
+                    () -> {
+                        tabs.setSelectedIndex(index);
+                        Rectangle at = tabs.getBoundsAt(index);
+                        showPopup(tabs, at.x + at.width / 2, at.y + at.height / 2);
+                    });
         }
     }
 
@@ -219,15 +383,15 @@ final class AceClicks {
             Rectangle bounds = boundsOnScreen(tree, rowBounds);
             if (bounds == null) continue;
             int at = row;
-            found.add(
-                    new Target(
-                            bounds,
-                            () -> selectTreeRow(tree, at),
-                            () -> {
-                                selectTreeRow(tree, at);
-                                showPopup(
-                                        tree, rowBounds.x + 1, rowBounds.y + rowBounds.height / 2);
-                            }));
+            addTarget(
+                    found,
+                    tree,
+                    bounds,
+                    () -> selectTreeRow(tree, at),
+                    () -> {
+                        selectTreeRow(tree, at);
+                        showPopup(tree, rowBounds.x + 1, rowBounds.y + rowBounds.height / 2);
+                    });
         }
     }
 
@@ -245,14 +409,15 @@ final class AceClicks {
             Rectangle bounds = boundsOnScreen(list, cell);
             if (bounds == null) continue;
             int index = i;
-            found.add(
-                    new Target(
-                            bounds,
-                            () -> {
-                                list.setSelectedIndex(index);
-                                list.requestFocusInWindow();
-                            },
-                            () -> showPopup(list, cell.x + 1, cell.y + cell.height / 2)));
+            addTarget(
+                    found,
+                    list,
+                    bounds,
+                    () -> {
+                        list.setSelectedIndex(index);
+                        list.requestFocusInWindow();
+                    },
+                    () -> showPopup(list, cell.x + 1, cell.y + cell.height / 2));
         }
     }
 
@@ -264,14 +429,15 @@ final class AceClicks {
             Rectangle bounds = boundsOnScreen(table, cell);
             if (bounds == null) continue;
             int at = row;
-            found.add(
-                    new Target(
-                            bounds,
-                            () -> {
-                                table.changeSelection(at, 0, false, false);
-                                table.requestFocusInWindow();
-                            },
-                            () -> showPopup(table, cell.x + 1, cell.y + cell.height / 2)));
+            addTarget(
+                    found,
+                    table,
+                    bounds,
+                    () -> {
+                        table.changeSelection(at, 0, false, false);
+                        table.requestFocusInWindow();
+                    },
+                    () -> showPopup(table, cell.x + 1, cell.y + cell.height / 2));
         }
     }
 

@@ -72,7 +72,7 @@ final class AceOverlay extends JComponent {
         JLayeredPane layered = host.getLayeredPane();
         AceOverlay overlay = new AceOverlay(layered);
         overlay.setBounds(0, 0, layered.getWidth(), layered.getHeight());
-        layered.add(overlay, JLayeredPane.POPUP_LAYER);
+        layered.add(overlay, JLayeredPane.DRAG_LAYER);
         layered.revalidate();
         return overlay;
     }

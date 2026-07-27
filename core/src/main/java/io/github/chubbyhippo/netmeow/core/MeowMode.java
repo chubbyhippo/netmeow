@@ -21,5 +21,9 @@ public enum MeowMode {
     NORMAL,
     INSERT,
     MOTION,
-    KEYPAD,
+    KEYPAD;
+
+    public boolean takesChords() {
+        return this == NORMAL || this == MOTION;
+    }
 }

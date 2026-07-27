@@ -26,7 +26,7 @@ public final class Chords {
     }
 
     public static boolean claims(MeowMode mode, Chord chord) {
-        if (mode == MeowMode.INSERT) return false;
+        if (!mode.takesChords()) return false;
         return bindingFor(chord) != null;
     }
 

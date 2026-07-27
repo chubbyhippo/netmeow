@@ -147,9 +147,10 @@ mmap q <action>(netmeow.hideView)
 " The Emacs chord layer — modifier-key bindings, like the vanilla Emacs keymap
 " ----------------------------------------------------------------------------
 " Unlike the single-key layout above, these are Ctrl-/Alt- CHORDS. They fire
-" only outside INSERT and, like meow's own motions, EXTEND an active selection
-" instead of replacing it (so C-f after a selection grows it). Either spelling
-" works: the Emacs one (C-f, M-<) or the host one (control F, alt shift COMMA).
+" in NORMAL and MOTION — never in INSERT, never mid-keypad — and, like meow's
+" own motions, EXTEND an active selection instead of replacing it (so C-f
+" after a selection grows it). Either spelling works: the Emacs one (C-f, M-<)
+" or the host one (control F, alt shift COMMA).
 " An unbound chord stays the IDE's; to hand a bound one back, map it to
 " `ignore` — e.g. `cmap C-f ignore` restores Find.
 " ============================================================================
@@ -182,8 +183,8 @@ cmap M-d kill-word
 " one (meow-semantics.md): meow-kill's no-selection fallback is meow-C-k, so
 " C-k kills the line and C-w the region through the same command; meow-save is
 " kill-ring-save; meow-cancel-selection is keyboard-quit; meow-delete is
-" delete-forward-char. These fire only outside INSERT, so the IDE keeps them
-" while you type.
+" delete-forward-char. These never fire in INSERT, so the IDE keeps them while
+" you type.
 cmap C-/ meow-undo
 cmap C-_ meow-undo
 cmap C-d meow-delete
@@ -210,7 +211,10 @@ cmap M-^ ms
 " key) are reserved by the keypad itself and cannot be remapped.
 " ============================================================================
 
-" SPC SPC: ace-click — label every clickable UI element, then pick one
+" SPC SPC: ace-click — label every clickable UI element, then pick one:
+" buttons, tree rows, list and table cells, the window and document tabs, the
+" menu bar. Picking a menu (or a capital label, which opens the target's
+" context menu) labels what pops open, so a whole menu path is keyboard-walkable.
 desc <leader><Space> ace-click
 map <leader><Space> <action>(netmeow.aceClick)
 

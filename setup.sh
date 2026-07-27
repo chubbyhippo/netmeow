@@ -15,6 +15,7 @@
 # (module/target/nbm/clusters/extra) is copied into the userdir, which gives
 # modules/, modules/ext/, config/Modules/ and update_tracking/ in one step.
 # NetBeans must be RESTARTED afterwards — it reads the userdir once, at boot.
+# Under WSL the Windows IDE's userdir (%APPDATA%\NetBeans\<version>) counts too.
 
 set -eu
 
@@ -39,7 +40,7 @@ while [ $# -gt 0 ]; do
 		userdir=$1
 		;;
 	-h | --help)
-		sed -n '2,17p' "$0"
+		sed -n '2,18p' "$0"
 		exit 0
 		;;
 	*)
@@ -56,6 +57,29 @@ warn() { printf '\033[1;33mwarn:\033[0m %s\n' "$*" >&2; }
 # mise pins java 21 + maven; fall back to a PATH mvn without mise.
 if command -v mise >/dev/null 2>&1; then MVN="mise exec -- mvn"; else MVN="mvn"; fi
 
+# The nbm is compiled against one platform release (module/pom.xml's
+# netbeans.version); an older userdir would only collect a module that IDE
+# cannot enable, so version-named dirs below that release are skipped.
+release=$(sed -n 's|.*<netbeans\.version>RELEASE\([0-9][0-9]*\)</netbeans\.version>.*|\1|p' \
+	"$here/module/pom.xml" 2>/dev/null | head -1)
+min_release=""
+if [ -n "$release" ]; then min_release=$((release / 10)); fi
+
+usable_userdir() {
+	name=$(basename "$1")
+	case "$name" in
+	*cache* | dev) return 1 ;;
+	esac
+	case "$name" in
+	*[!0-9]*) return 0 ;;
+	esac
+	if [ -n "$min_release" ] && [ "$name" -lt "$min_release" ]; then
+		warn "$1 predates NetBeans $min_release — skipped"
+		return 1
+	fi
+	return 0
+}
+
 # Userdirs, newest last: macOS keeps them under Application Support, Linux
 # under ~/.netbeans or the XDG data dir.
 detect_userdirs() {
@@ -66,11 +90,23 @@ detect_userdirs() {
 		[ -d "$base" ] || continue
 		for candidate in "$base"/*; do
 			[ -d "$candidate" ] || continue
-			case "$(basename "$candidate")" in
-			*cache* | dev) continue ;;
-			esac
+			usable_userdir "$candidate" || continue
 			printf '%s\n' "$candidate"
 		done
+	done
+	detect_windows_userdirs
+}
+
+# Under WSL the IDE is usually the Windows build, whose userdir sits on a
+# mounted drive as %APPDATA%\NetBeans\<version>. Glob the mounts rather than ask
+# cmd.exe for APPDATA (interop can be off), and require the config/ a booted
+# userdir always has — which also drops an unmatched glob.
+detect_windows_userdirs() {
+	grep -qi microsoft /proc/sys/kernel/osrelease 2>/dev/null || return 0
+	for candidate in /mnt/*/Users/*/AppData/Roaming/NetBeans/*; do
+		[ -d "$candidate/config" ] || continue
+		usable_userdir "$candidate" || continue
+		printf '%s\n' "$candidate"
 	done
 }
 

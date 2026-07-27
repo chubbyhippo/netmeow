@@ -8,13 +8,13 @@ it, plus native ports of [avy](https://github.com/abo-abo/avy),
 
 ## Status
 
-**Work in progress.** Installable via `./setup.sh`, but the adapter has not
-yet been driven from a keyboard, so treat it as unproven.
+**Work in progress.** Installable via `./setup.sh`; the adapter now runs in a
+live IDE, but only parts of it have been exercised from a keyboard.
 
 | Part | State |
 |---|---|
-| `core` — the modal engine, motions, things, selection, kill/save/yank, search, avy, grab, keypad, rc | **complete, 316 specs green** |
-| NetBeans adapter (`module`) | written and building as an NBM — **not yet exercised in a running IDE** |
+| `core` — the modal engine, motions, things, selection, kill/save/yank, search, avy, grab, keypad, rc | **complete, 363 specs green** |
+| NetBeans adapter (`module`) | building and installing as an NBM, 42 specs green — **live but only partly keyboard-verified** |
 | Bundled keymap `.netmeowrc` | present, but its host-action targets still need NetBeans equivalents |
 
 Known gaps in the adapter: which-key renders to the status line rather than a
@@ -36,6 +36,11 @@ compile path.
 ./setup.sh -h           # all flags
 ```
 
+Userdirs are found under `~/Library/Application Support/NetBeans`, `~/.netbeans`
+and `~/.local/share/netbeans` — and, under WSL, the Windows IDE's
+`%APPDATA%\NetBeans\<version>` on the mounted drive. Userdirs from a NetBeans
+older than the release the module is built against are reported and skipped.
+
 Restart NetBeans afterwards — the userdir is read once, at boot.
 
 ## Build
@@ -43,7 +48,7 @@ Restart NetBeans afterwards — the userdir is read once, at boot.
 Requires JDK 21 and Maven; both are pinned in `mise.toml`.
 
 ```sh
-mise exec -- mvn verify     # compile, format check, SpotBugs, 316 specs
+mise exec -- mvn verify     # compile, format check, SpotBugs, 405 specs
 mise exec -- mvn spotless:apply   # fix formatting
 ```
 

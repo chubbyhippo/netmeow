@@ -142,11 +142,14 @@ class ChordSpec extends SpecDsl {
     }
 
     @Test
-    @DisplayName("given NORMAL then a mapped chord is claimed but INSERT and plain keys are not")
-    void claimsOnlyOutsideInsert() {
+    @DisplayName(
+            "given NORMAL or MOTION then a mapped chord is claimed but INSERT and KEYPAD are not")
+    void claimsInNormalAndMotionOnly() {
         givenRc("");
         assertTrue(Chords.claims(MeowMode.NORMAL, Chord.parse("C-f")));
+        assertTrue(Chords.claims(MeowMode.MOTION, Chord.parse("C-f")));
         assertFalse(Chords.claims(MeowMode.INSERT, Chord.parse("C-f")));
+        assertFalse(Chords.claims(MeowMode.KEYPAD, Chord.parse("C-f")));
         assertFalse(Chords.claims(MeowMode.NORMAL, Chord.parse("C-q")));
     }
 
