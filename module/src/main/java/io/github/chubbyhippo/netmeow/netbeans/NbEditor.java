@@ -20,11 +20,13 @@ import io.github.chubbyhippo.netmeow.core.EditorPort;
 import io.github.chubbyhippo.netmeow.core.SelRange;
 import io.github.chubbyhippo.netmeow.core.TextEdit;
 import java.awt.Rectangle;
+import java.awt.event.ActionEvent;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import javax.swing.Action;
 import javax.swing.SwingUtilities;
 import javax.swing.text.BadLocationException;
 import javax.swing.text.Caret;
@@ -36,6 +38,7 @@ import javax.swing.text.StyledDocument;
 import javax.swing.text.Utilities;
 import org.netbeans.api.editor.caret.CaretInfo;
 import org.netbeans.api.editor.caret.EditorCaret;
+import org.netbeans.editor.BaseKit;
 import org.openide.text.NbDocument;
 import org.openide.windows.TopComponent;
 
@@ -157,7 +160,13 @@ final class NbEditor implements EditorPort {
 
     @Override
     public void undo() {
-        NbActions.invoke("Edit", "org.openide.actions.UndoAction");
+        Action editorUndo = component.getActionMap().get(BaseKit.undoAction);
+        if (editorUndo == null) {
+            NbActions.invoke("Edit", "org.openide.actions.UndoAction");
+            return;
+        }
+        editorUndo.actionPerformed(
+                new ActionEvent(component, ActionEvent.ACTION_PERFORMED, BaseKit.undoAction));
     }
 
     @Override
