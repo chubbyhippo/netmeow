@@ -17,7 +17,7 @@
 "   nnoremap ...                       like nmap, but the RHS resolves through
 "                                      these bundled defaults
 "   mmap / mnoremap <key> <target>     the same, for MOTION mode (the keymap of
-"                                      workbench trees)
+"                                      every tree, list and table)
 "   cmap / cnoremap <chord> <target>   the Emacs modifier-chord layer
 "   map <leader><seq> <target>         keypad (SPC) entry
 "   desc <leader><seq> <text>          which-key label for an entry or a group
@@ -131,12 +131,16 @@ nmap ' repeat
 nmap S avy-goto-char-timer
 nmap Q avy-goto-line
 
-" MOTION mode — the keymap of workbench trees (Projects, Files, Navigator,
-" search results, ...): j/k/h/l move like the arrow keys (h collapses or goes
-" to the parent, l expands or enters), q hides the window, and every unmapped
-" key keeps its native meaning. Read-only editors do NOT use MOTION; they stay
-" NORMAL with the modify commands inert. `mmap <key> ignore` gives a key back
-" to the tree.
+" MOTION mode — the keymap of every tree, list and table, wherever it is:
+" the workbench windows (Projects, Files, Navigator, search results, ...) AND
+" dialogs. j/k/h/l move like the arrow keys (h collapses or goes to the parent,
+" l expands or enters), and every unmapped key keeps its native meaning. Text
+" inputs are never touched, so typing still types — including NetBeans' own
+" type-to-search, whose field takes the focus. q hides the window, and it is the
+" one MOTION key that stays workbench-only: outside a window it would close
+" whatever view sits behind your dialog. Read-only editors do NOT use MOTION;
+" they stay NORMAL with the modify commands inert. `mmap <key> ignore` gives a
+" key back to the tree.
 mmap j meow-next
 mmap k meow-prev
 mmap h meow-left

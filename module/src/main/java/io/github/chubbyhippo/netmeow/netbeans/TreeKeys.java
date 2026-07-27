@@ -24,6 +24,8 @@ import io.github.chubbyhippo.netmeow.core.TreeMeow;
 import java.awt.Component;
 import java.awt.KeyboardFocusManager;
 import java.awt.event.KeyEvent;
+import java.util.ArrayList;
+import java.util.List;
 import javax.swing.MenuSelectionManager;
 import javax.swing.SwingUtilities;
 import javax.swing.text.JTextComponent;
@@ -40,11 +42,17 @@ final class TreeKeys {
         if (focused == null || focused instanceof JTextComponent) return false;
         if (event.getKeyCode() == KeyEvent.VK_ESCAPE) return escapeToEditor(focused);
         if (keypadTakes(event)) return true;
-        if (!inToolWindow(focused) || !Trees.isNavigable(focused)) return false;
+        if (!Trees.acceptsMotion(focused)) return false;
         char key = Keystrokes.letterOf(event);
         if (key == 0 || !TreeMeow.boundChars().contains(key)) return false;
+        List<String> targets = new ArrayList<>();
+        TreeMeow.dispatch(targets::add, key);
+        if (targets.isEmpty()) return false;
+        if (!inToolWindow(focused) && !targets.stream().allMatch(Commands::isTreeCommand)) {
+            return false;
+        }
         ModeWidget.setMode(MeowMode.MOTION.name());
-        TreeMeow.dispatch(id -> Commands.runOn(id, focused), key);
+        for (String target : targets) Commands.runOn(target, focused);
         return true;
     }
 

@@ -21,8 +21,12 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import javax.swing.DefaultListModel;
+import javax.swing.JButton;
 import javax.swing.JLabel;
 import javax.swing.JList;
+import javax.swing.JTable;
+import javax.swing.JTextArea;
+import javax.swing.JTextField;
 import javax.swing.JTree;
 import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.DefaultTreeModel;
@@ -123,5 +127,39 @@ class TreesSpec {
         assertFalse(Trees.isNavigable(new JLabel("nope")));
         assertTrue(Trees.isNavigable(new JTree()));
         assertFalse(Trees.focusDown(new JLabel("nope")));
+    }
+
+    @Test
+    @DisplayName("given a tree list or table anywhere then MOTION claims its keys")
+    void motionClaimsEveryNavigableSurface() {
+        assertTrue(Trees.acceptsMotion(new JTree()));
+        assertTrue(Trees.acceptsMotion(new JList<String>()));
+        assertTrue(Trees.acceptsMotion(new JTable()));
+    }
+
+    @Test
+    @DisplayName("given a text input then MOTION stands down so typing works")
+    void motionStandsDownOnTextInput() {
+        assertFalse(Trees.acceptsMotion(new JTextField("find")));
+        assertFalse(Trees.acceptsMotion(new JTextArea("body")));
+        assertFalse(Trees.acceptsMotion(null));
+    }
+
+    @Test
+    @DisplayName("given a button or label then MOTION leaves the key native")
+    void motionLeavesPlainControlsAlone() {
+        assertFalse(Trees.acceptsMotion(new JButton("Run")));
+        assertFalse(Trees.acceptsMotion(new JLabel("nope")));
+    }
+
+    @Test
+    @DisplayName("given a MOTION target then only tree navigation travels outside a tool window")
+    void onlyTreeNavigationTravelsOutsideToolWindows() {
+        assertTrue(Commands.isTreeCommand("netmeow.tree.focusDown"));
+        assertTrue(Commands.isTreeCommand("netmeow.tree.focusUp"));
+        assertTrue(Commands.isTreeCommand("netmeow.tree.expand"));
+        assertTrue(Commands.isTreeCommand("netmeow.tree.collapse"));
+        assertFalse(Commands.isTreeCommand("netmeow.hideView"));
+        assertFalse(Commands.isTreeCommand("org-netbeans-modules-project-ui-logical-tab-action"));
     }
 }

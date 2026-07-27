@@ -68,6 +68,10 @@ final class Commands {
 
     private Commands() {}
 
+    static boolean isTreeCommand(String id) {
+        return BY_TREE_ID.containsKey(id);
+    }
+
     static boolean run(String id) {
         Consumer<JTextComponent> command = BY_ID.get(id);
         if (command == null) return false;

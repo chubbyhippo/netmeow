@@ -20,6 +20,7 @@ import java.awt.Component;
 import javax.swing.JList;
 import javax.swing.JTable;
 import javax.swing.JTree;
+import javax.swing.text.JTextComponent;
 import javax.swing.tree.TreePath;
 
 final class Trees {
@@ -30,6 +31,10 @@ final class Trees {
         return component instanceof JTree
                 || component instanceof JList<?>
                 || component instanceof JTable;
+    }
+
+    static boolean acceptsMotion(Component focused) {
+        return isNavigable(focused) && !(focused instanceof JTextComponent);
     }
 
     static boolean focusDown(Component component) {
