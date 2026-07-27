@@ -42,7 +42,10 @@ final class NbActions {
     private static final String ACTIONS_FOLDER = "Actions";
     private static final String INSTANCE = ".instance";
 
+    private static final String EDITORS_FOLDER = "Editors";
+
     private static Map<String, String> categoryById;
+    private static Map<String, String> editorActionPaths;
 
     private NbActions() {}
 
@@ -103,7 +106,39 @@ final class NbActions {
         String id = ActionIds.fullyQualified(spec);
         String category = index().get(id);
         if (category != null) return invoke(category, id);
-        return invokeEditorAction(spec);
+        if (invokeEditorAction(spec)) return true;
+        return invokeRegisteredEditorAction(spec);
+    }
+
+    private static boolean invokeRegisteredEditorAction(String spec) {
+        JTextComponent component = Editors.focused();
+        if (component == null) return false;
+        String path = editorIndex().get(spec);
+        if (path == null) path = editorIndex().get(ActionIds.fullyQualified(spec));
+        if (path == null) return false;
+        Action action = FileUtil.getConfigObject(path, Action.class);
+        if (action == null) return false;
+        action.actionPerformed(new ActionEvent(component, ActionEvent.ACTION_PERFORMED, spec));
+        return true;
+    }
+
+    static synchronized Map<String, String> editorIndex() {
+        if (editorActionPaths != null) return editorActionPaths;
+        Map<String, String> found = new LinkedHashMap<>();
+        FileObject editors = FileUtil.getConfigFile(EDITORS_FOLDER);
+        if (editors != null) indexEditorActions(editors, found);
+        editorActionPaths = found;
+        return editorActionPaths;
+    }
+
+    private static void indexEditorActions(FileObject folder, Map<String, String> found) {
+        for (FileObject child : folder.getChildren()) {
+            if (child.isFolder()) {
+                indexEditorActions(child, found);
+            } else if (ACTIONS_FOLDER.equals(folder.getNameExt())) {
+                found.putIfAbsent(child.getName(), child.getPath());
+            }
+        }
     }
 
     static String categoryOf(String spec) {
