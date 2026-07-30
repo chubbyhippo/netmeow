@@ -217,7 +217,7 @@ class RcSpec extends SpecDsl {
     }
 
     @Test
-    @DisplayName("the bundled default netmeowrc defines the whole keymap")
+    @DisplayName("the bundled rc defines the whole keymap")
     void bundledRcDefinesWholeKeymap() {
         Rc.Config d = Rc.defaults();
         assertEquals(List.of(), d.errors, "bundled default must parse clean");

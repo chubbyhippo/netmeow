@@ -87,7 +87,7 @@ class RepeatSpec extends SpecDsl {
     }
 
     @Test
-    @DisplayName("the bundled default netmeowrc declares the init el repeat groups")
+    @DisplayName("the bundled rc declares the init el repeat groups")
     void bundledRcDeclaresRepeatGroups() {
         Map<String, Map<Character, Rc.Binding>> d = Rc.defaults().repeat;
         assertEquals("org-netbeans-core-actions-JumpNextAction", d.get("error").get('.').action());
