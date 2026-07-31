@@ -18,6 +18,7 @@ package io.github.chubbyhippo.netmeow.netbeans;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.github.chubbyhippo.netmeow.core.Rc;
@@ -140,6 +141,27 @@ class ActionAuditSpec {
         Rc.Binding audit = Rc.parse(Rc.bundledLines()).keypad.get("id");
         assertNotNull(audit);
         assertEquals("netmeow.actionIds", audit.action());
+    }
+
+    @Test
+    @DisplayName("given unsaved rc edits then SPC c M reaches the command that flushes them")
+    void reloadReachesTheFlush() {
+        Rc.Binding reload = Rc.parse(Rc.bundledLines()).keypad.get("cM");
+        assertNotNull(reload);
+        assertEquals("netmeow.reloadRc", reload.action());
+        assertTrue(Commands.ids().contains("netmeow.reloadRc"));
+    }
+
+    @Test
+    @DisplayName("given no directional stretch in the host then = maximizes the window instead")
+    void maximizeStandsInForTheStretchKeys() {
+        Rc.Config bundled = Rc.parse(Rc.bundledLines());
+        Rc.Binding maximize = bundled.normal.get('=');
+        assertNotNull(maximize);
+        assertEquals("org-netbeans-core-windows-actions-MaximizeWindowAction", maximize.action());
+        assertEquals(maximize.action(), bundled.keypad.get("wM").action());
+        assertNull(bundled.normal.get('_'));
+        assertNull(bundled.normal.get('+'));
     }
 
     private static List<String> ids(List<ActionAudit.Target> targets) {

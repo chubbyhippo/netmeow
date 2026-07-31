@@ -131,6 +131,11 @@ nmap ' repeat
 nmap S avy-goto-char-timer
 nmap Q avy-goto-line
 
+" --- window size -------------------------------------------------------------
+" = toggles the active window filling the frame. NetBeans has no directional
+" stretch, so _ and + stay free; SPC w r (ace-resize) is the directional one.
+nmap = <action>(org-netbeans-core-windows-actions-MaximizeWindowAction)
+
 " MOTION mode — the keymap of every tree, list and table, wherever it is:
 " the workbench windows (Projects, Files, Navigator, search results, ...) AND
 " dialogs. j/k/h/l move like the arrow keys (h collapses or goes to the parent,
@@ -379,6 +384,8 @@ map <leader>wD <action>(org-netbeans-core-multiview-ClearSplitAction)
 desc <leader>wD unsplit
 map <leader>wm <action>(org-netbeans-core-multiview-ClearSplitAction)
 desc <leader>wm unsplit
+map <leader>wM <action>(org-netbeans-core-windows-actions-MaximizeWindowAction)
+desc <leader>wM maximize window
 map <leader>ww <action>(netmeow.aceWindow)
 desc <leader>ww ace-window
 map <leader>wW <action>(netmeow.aceSwapWindow)
