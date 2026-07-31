@@ -80,6 +80,10 @@ final class Commands {
         return BY_TREE_ID.containsKey(id);
     }
 
+    static boolean canRun(String id) {
+        return BY_ID.containsKey(id) || BY_TREE_ID.containsKey(id);
+    }
+
     static boolean run(String id) {
         Consumer<JTextComponent> command = BY_ID.get(id);
         if (command == null) return false;

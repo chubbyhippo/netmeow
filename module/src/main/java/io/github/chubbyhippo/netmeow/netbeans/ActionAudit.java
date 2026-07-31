@@ -33,26 +33,35 @@ final class ActionAudit {
     static final String NONE = "-";
 
     private static final String TABLE_HEADER = "id | category | label | shortcut";
+    private static final String COLUMN_SEPARATOR = " | ";
+    private static final String INDENT = "  ";
+    private static final String NO_DEAD_TARGETS = INDENT + "(none)";
 
     private ActionAudit() {}
 
     static List<Target> targets(Rc.Config defaults, Rc.Config user) {
         List<Target> found = new ArrayList<>();
         merged(defaults.keypad, user.keypad)
-                .forEach((keys, binding) -> add(found, "SPC " + spelled(keys), binding));
+                .forEach((keys, binding) -> addIfAction(found, "SPC " + spelled(keys), binding));
         merged(defaults.normal, user.normal)
-                .forEach((key, binding) -> add(found, "NORMAL " + spelled(key), binding));
+                .forEach((key, binding) -> addIfAction(found, "NORMAL " + spelled(key), binding));
         merged(defaults.motion, user.motion)
-                .forEach((key, binding) -> add(found, "MOTION " + spelled(key), binding));
+                .forEach((key, binding) -> addIfAction(found, "MOTION " + spelled(key), binding));
         merged(defaults.chords, user.chords)
-                .forEach((chord, binding) -> add(found, chord.spelling(), binding));
-        for (Map.Entry<String, Map<Character, Rc.Binding>> group :
-                repeats(defaults, user).entrySet()) {
-            String where = "repeat " + group.getKey() + " ";
-            group.getValue().forEach((key, binding) -> add(found, where + spelled(key), binding));
-        }
+                .forEach((chord, binding) -> addIfAction(found, chord.spelling(), binding));
+        addRepeatMembers(found, defaults, user);
         found.sort(Comparator.comparing(Target::where).thenComparing(Target::id));
         return found;
+    }
+
+    private static void addRepeatMembers(List<Target> found, Rc.Config defaults, Rc.Config user) {
+        for (Map.Entry<String, Map<Character, Rc.Binding>> group :
+                repeats(defaults, user).entrySet()) {
+            for (Map.Entry<Character, Rc.Binding> member : group.getValue().entrySet()) {
+                String where = "repeat " + group.getKey() + " " + spelled(member.getKey());
+                addIfAction(found, where, member.getValue());
+            }
+        }
     }
 
     static List<Target> dead(List<Target> targets, Predicate<String> resolvable) {
@@ -70,7 +79,7 @@ final class ActionAudit {
         out.addAll(deadLines(dead));
         out.add("");
         out.add(TABLE_HEADER);
-        out.addAll(rowLines(rows));
+        out.addAll(tableLines(rows));
         return List.copyOf(out);
     }
 
@@ -78,40 +87,52 @@ final class ActionAudit {
         return new Row(id, "netmeow", NONE, NONE);
     }
 
+    static Map<String, String> shortcutsById(
+            Map<String, String> profileByKeystroke, Map<String, String> legacyByKeystroke) {
+        Map<String, String> idByKeystroke = new LinkedHashMap<>(profileByKeystroke);
+        legacyByKeystroke.forEach(idByKeystroke::putIfAbsent);
+        Map<String, String> keystrokesById = new LinkedHashMap<>();
+        idByKeystroke.forEach(
+                (keystroke, id) -> keystrokesById.merge(id, keystroke, ActionAudit::listed));
+        return keystrokesById;
+    }
+
+    private static String listed(String first, String next) {
+        return first + ", " + next;
+    }
+
     static String orNone(String value) {
         return value == null || value.isBlank() ? NONE : value;
     }
 
     private static List<String> deadLines(List<Target> dead) {
-        if (dead.isEmpty()) return List.of("  (none)");
-        int width = widest(dead.stream().map(Target::where).toList());
+        if (dead.isEmpty()) return List.of(NO_DEAD_TARGETS);
+        int keyWidth = widest(dead.stream().map(Target::where).toList());
         return dead.stream()
-                .map(target -> "  " + pad(target.where(), width) + " " + target.id())
+                .map(target -> INDENT + padded(target.where(), keyWidth) + INDENT + target.id())
                 .toList();
     }
 
-    private static List<String> rowLines(List<Row> rows) {
+    private static List<String> tableLines(List<Row> rows) {
         List<Row> sorted =
                 rows.stream()
                         .sorted(Comparator.comparing(Row::category).thenComparing(Row::id))
                         .toList();
         int idWidth = widest(sorted.stream().map(Row::id).toList());
         int categoryWidth = widest(sorted.stream().map(Row::category).toList());
-        List<String> out = new ArrayList<>();
-        for (Row row : sorted) {
-            out.add(
-                    pad(row.id(), idWidth)
-                            + "| "
-                            + pad(row.category(), categoryWidth)
-                            + "| "
-                            + row.label()
-                            + " | "
-                            + row.shortcut());
-        }
-        return out;
+        return sorted.stream().map(row -> tableLine(row, idWidth, categoryWidth)).toList();
     }
 
-    private static void add(List<Target> found, String where, Rc.Binding binding) {
+    private static String tableLine(Row row, int idWidth, int categoryWidth) {
+        return String.join(
+                COLUMN_SEPARATOR,
+                padded(row.id(), idWidth),
+                padded(row.category(), categoryWidth),
+                row.label(),
+                row.shortcut());
+    }
+
+    private static void addIfAction(List<Target> found, String where, Rc.Binding binding) {
         if (binding.action() == null) return;
         found.add(new Target(where, binding.action()));
     }
@@ -151,7 +172,7 @@ final class ActionAudit {
         return values.stream().mapToInt(String::length).max().orElse(0);
     }
 
-    private static String pad(String value, int width) {
-        return value + " ".repeat(Math.max(0, width - value.length()) + 1);
+    private static String padded(String value, int width) {
+        return value + " ".repeat(Math.max(0, width - value.length()));
     }
 }

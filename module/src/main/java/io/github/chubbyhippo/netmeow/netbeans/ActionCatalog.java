@@ -47,19 +47,22 @@ final class ActionCatalog {
     private static final Logger LOG = Logger.getLogger(ActionCatalog.class.getName());
     private static final String REPORT_NAME = "netmeow-action-ids.txt";
     private static final String SHORTCUTS_FOLDER = "Shortcuts";
+    private static final String KEYMAPS_FOLDER = "Keymaps";
+    private static final String CURRENT_KEYMAP = "currentKeymap";
+    private static final String DEFAULT_PROFILE = "NetBeans";
     private static final String SHADOW = "shadow";
     private static final String ORIGINAL_FILE = "originalFile";
     private static final String DISPLAY_NAME = "displayName";
-    private static final String INSTANCE = ".instance";
     private static final String EDITORS_PREFIX = "Editors/";
     private static final String ACTIONS_SEGMENT = "/Actions/";
 
     private ActionCatalog() {}
 
     static void show(JTextComponent editor) {
-        Set<String> live = liveActionNames(editor);
+        Set<String> liveEditorActions = liveEditorActions(editor);
         List<ActionAudit.Target> targets = ActionAudit.targets(Rc.defaults(), Rc.cfg());
-        List<ActionAudit.Target> dead = ActionAudit.dead(targets, id -> resolves(id, live));
+        List<ActionAudit.Target> dead =
+                ActionAudit.dead(targets, id -> resolves(id, liveEditorActions));
         List<ActionAudit.Row> rows = rows(editor);
         Path path = write(ActionAudit.report(targets, dead, rows));
         if (path == null) return;
@@ -73,43 +76,40 @@ final class ActionCatalog {
                         + path);
     }
 
-    private static boolean resolves(String target, Set<String> live) {
-        if (Commands.ids().contains(target)) return true;
-        String id = ActionIds.fullyQualified(target);
-        if (!ActionIds.isFullyQualified(id)) return false;
-        if (NbActions.index().containsKey(id)) return true;
-        if (live.contains(target)) return true;
-        return NbActions.editorIndex().containsKey(target)
-                || NbActions.editorIndex().containsKey(id);
+    private static boolean resolves(String target, Set<String> liveEditorActions) {
+        return Commands.canRun(target) || NbActions.canInvoke(target, liveEditorActions);
     }
 
     private static List<ActionAudit.Row> rows(JTextComponent editor) {
         Map<String, String> globalShortcuts = globalShortcuts();
         Map<String, String> editorShortcuts = editorShortcuts(editor);
         List<ActionAudit.Row> rows = new ArrayList<>();
-        NbActions.index()
-                .forEach(
-                        (id, registration) ->
-                                rows.add(
-                                        new ActionAudit.Row(
-                                                id,
-                                                registration.category(),
-                                                labelAt(registration.path()),
-                                                ActionAudit.orNone(globalShortcuts.get(id)))));
+        NbActions.index().forEach((id, where) -> rows.add(globalRow(id, where, globalShortcuts)));
         NbActions.editorIndex()
-                .forEach(
-                        (name, path) ->
-                                rows.add(
-                                        new ActionAudit.Row(
-                                                name,
-                                                editorCategoryOf(path),
-                                                labelAt(path),
-                                                ActionAudit.orNone(editorShortcuts.get(name)))));
+                .forEach((name, path) -> rows.add(editorRow(name, path, editorShortcuts)));
         Commands.ids().forEach(id -> rows.add(ActionAudit.commandRow(id)));
         return rows;
     }
 
-    private static String labelAt(String path) {
+    private static ActionAudit.Row globalRow(
+            String id, NbActions.Registration where, Map<String, String> shortcuts) {
+        return new ActionAudit.Row(
+                id,
+                where.category(),
+                displayNameAt(where.path()),
+                ActionAudit.orNone(shortcuts.get(id)));
+    }
+
+    private static ActionAudit.Row editorRow(
+            String name, String path, Map<String, String> shortcuts) {
+        return new ActionAudit.Row(
+                name,
+                editorCategoryOf(path),
+                displayNameAt(path),
+                ActionAudit.orNone(shortcuts.get(name)));
+    }
+
+    private static String displayNameAt(String path) {
         FileObject file = FileUtil.getConfigFile(path);
         if (file == null) return ActionAudit.NONE;
         Object label = file.getAttribute(DISPLAY_NAME);
@@ -127,30 +127,34 @@ final class ActionCatalog {
     }
 
     private static Map<String, String> globalShortcuts() {
-        Map<String, String> byId = new LinkedHashMap<>();
-        FileObject folder = FileUtil.getConfigFile(SHORTCUTS_FOLDER);
-        if (folder == null) return byId;
+        return ActionAudit.shortcutsById(
+                idsByKeystrokeIn(FileUtil.getConfigFile(KEYMAPS_FOLDER + "/" + keymapProfile())),
+                idsByKeystrokeIn(FileUtil.getConfigFile(SHORTCUTS_FOLDER)));
+    }
+
+    private static Map<String, String> idsByKeystrokeIn(FileObject folder) {
+        Map<String, String> idByKeystroke = new LinkedHashMap<>();
+        if (folder == null) return idByKeystroke;
         for (FileObject shadow : folder.getChildren()) {
             if (!SHADOW.equals(shadow.getExt())) continue;
             Object original = shadow.getAttribute(ORIGINAL_FILE);
             if (original == null) continue;
-            String id = idAt(original.toString());
-            if (id == null) continue;
-            byId.merge(id, shadow.getName(), (first, next) -> first + ", " + next);
+            String id = ActionIds.ofInstanceFile(original.toString());
+            if (id != null) idByKeystroke.putIfAbsent(shadow.getName(), id);
         }
-        return byId;
+        return idByKeystroke;
     }
 
-    private static String idAt(String instancePath) {
-        if (!instancePath.endsWith(INSTANCE)) return null;
-        String name = instancePath.substring(0, instancePath.length() - INSTANCE.length());
-        int slash = name.lastIndexOf('/');
-        return ActionIds.fullyQualified(slash < 0 ? name : name.substring(slash + 1));
+    private static String keymapProfile() {
+        FileObject keymaps = FileUtil.getConfigFile(KEYMAPS_FOLDER);
+        if (keymaps == null) return DEFAULT_PROFILE;
+        Object current = keymaps.getAttribute(CURRENT_KEYMAP);
+        return current == null ? DEFAULT_PROFILE : current.toString();
     }
 
     private static Map<String, String> editorShortcuts(JTextComponent editor) {
         Map<String, String> byName = new LinkedHashMap<>();
-        for (JTextComponent component : components(editor)) {
+        for (JTextComponent component : editorsIncluding(editor)) {
             Keymap keymap = component.getKeymap();
             if (keymap == null) continue;
             KeyStroke[] bound = keymap.getBoundKeyStrokes();
@@ -160,15 +164,15 @@ final class ActionCatalog {
                 if (action == null) continue;
                 Object name = action.getValue(Action.NAME);
                 if (name == null) continue;
-                byName.putIfAbsent(name.toString(), Utilities.keyToString(stroke));
+                byName.putIfAbsent(name.toString(), Utilities.keyToString(stroke, true));
             }
         }
         return byName;
     }
 
-    private static Set<String> liveActionNames(JTextComponent editor) {
+    private static Set<String> liveEditorActions(JTextComponent editor) {
         Set<String> names = new LinkedHashSet<>();
-        for (JTextComponent component : components(editor)) {
+        for (JTextComponent component : editorsIncluding(editor)) {
             ActionMap actions = component.getActionMap();
             if (actions == null) continue;
             Object[] keys = actions.allKeys();
@@ -180,7 +184,7 @@ final class ActionCatalog {
         return names;
     }
 
-    private static List<JTextComponent> components(JTextComponent editor) {
+    private static List<JTextComponent> editorsIncluding(JTextComponent editor) {
         List<JTextComponent> all = new ArrayList<>(EditorRegistry.componentList());
         if (editor != null && !all.contains(editor)) all.add(editor);
         return all;

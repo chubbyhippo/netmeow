@@ -18,6 +18,7 @@ package io.github.chubbyhippo.netmeow.netbeans;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.BufferedReader;
@@ -67,6 +68,22 @@ class ActionIdsSpec {
     void editorActionNameNormalizes() {
         assertEquals("zoom.text.in", ActionIds.fullyQualified("zoom-text-in"));
         assertTrue(ActionIds.isFullyQualified(ActionIds.fullyQualified("fix-imports")));
+    }
+
+    @Test
+    @DisplayName("given a layer instance path then the id comes from its file name alone")
+    void instancePathYieldsTheId() {
+        assertEquals(
+                "org.openide.actions.CopyAction",
+                ActionIds.ofInstanceFile("Actions/Edit/org-openide-actions-CopyAction.instance"));
+        assertEquals("zoom.text.in", ActionIds.ofInstanceFile("zoom-text-in.instance"));
+    }
+
+    @Test
+    @DisplayName("given a file that is not an action instance then there is no id")
+    void nonInstanceFilesHaveNoId() {
+        assertNull(ActionIds.ofInstanceFile("Shortcuts/AS-Y.shadow"));
+        assertNull(ActionIds.ofInstanceFile("Actions/Edit"));
     }
 
     @Test

@@ -22,7 +22,9 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.github.chubbyhippo.netmeow.core.Rc;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -149,7 +151,7 @@ class ActionAuditSpec {
         Rc.Binding reload = Rc.parse(Rc.bundledLines()).keypad.get("cM");
         assertNotNull(reload);
         assertEquals("netmeow.reloadRc", reload.action());
-        assertTrue(Commands.ids().contains("netmeow.reloadRc"));
+        assertTrue(Commands.canRun("netmeow.reloadRc"));
     }
 
     @Test
@@ -162,6 +164,29 @@ class ActionAuditSpec {
         assertEquals(maximize.action(), bundled.keypad.get("wM").action());
         assertNull(bundled.normal.get('_'));
         assertNull(bundled.normal.get('+'));
+    }
+
+    @Test
+    @DisplayName("given a keystroke in both the active keymap and Shortcuts then the keymap wins")
+    void theActiveKeymapBeatsTheLegacyFolder() {
+        Map<String, String> profile = Map.of("D-C", "profile.CopyAction");
+        Map<String, String> legacy =
+                new LinkedHashMap<>(
+                        Map.of("D-C", "legacy.CopyAction", "AS-Y", "legacy.SamplerAction"));
+        Map<String, String> byId = ActionAudit.shortcutsById(profile, legacy);
+        assertEquals("D-C", byId.get("profile.CopyAction"));
+        assertNull(byId.get("legacy.CopyAction"));
+        assertEquals("AS-Y", byId.get("legacy.SamplerAction"));
+    }
+
+    @Test
+    @DisplayName("given one action on several keystrokes then the shortcut column lists them all")
+    void severalKeystrokesAreJoined() {
+        Map<String, String> legacy = new LinkedHashMap<>();
+        legacy.put("D-C", "one.Action");
+        legacy.put("O-INSERT", "one.Action");
+        assertEquals(
+                "D-C, O-INSERT", ActionAudit.shortcutsById(Map.of(), legacy).get("one.Action"));
     }
 
     private static List<String> ids(List<ActionAudit.Target> targets) {

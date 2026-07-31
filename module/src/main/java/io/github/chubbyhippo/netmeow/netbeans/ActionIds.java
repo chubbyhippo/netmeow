@@ -25,10 +25,20 @@ final class ActionIds {
                     "\\p{javaJavaIdentifierStart}\\p{javaJavaIdentifierPart}*"
                             + "(\\.\\p{javaJavaIdentifierStart}\\p{javaJavaIdentifierPart}*)*");
 
+    private static final String INSTANCE_SUFFIX = ".instance";
+
     private ActionIds() {}
 
     static String fullyQualified(String layerOrDottedSpelling) {
         return layerOrDottedSpelling.replace('-', '.');
+    }
+
+    static String ofInstanceFile(String nameOrLayerPath) {
+        if (!nameOrLayerPath.endsWith(INSTANCE_SUFFIX)) return null;
+        String withoutSuffix =
+                nameOrLayerPath.substring(0, nameOrLayerPath.length() - INSTANCE_SUFFIX.length());
+        int lastFolder = withoutSuffix.lastIndexOf('/');
+        return fullyQualified(withoutSuffix.substring(lastFolder + 1));
     }
 
     static boolean isFullyQualified(String id) {

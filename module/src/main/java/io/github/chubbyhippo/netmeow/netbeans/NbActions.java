@@ -21,6 +21,7 @@ import java.awt.event.ActionEvent;
 import java.awt.geom.Rectangle2D;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.swing.Action;
@@ -40,8 +41,6 @@ final class NbActions {
 
     private static final Logger LOG = Logger.getLogger(NbActions.class.getName());
     private static final String ACTIONS_FOLDER = "Actions";
-    private static final String INSTANCE = ".instance";
-
     private static final String EDITORS_FOLDER = "Editors";
 
     record Registration(String category, String path) {}
@@ -112,6 +111,15 @@ final class NbActions {
         return invokeRegisteredEditorAction(spec);
     }
 
+    static boolean canInvoke(String spec, Set<String> liveEditorActions) {
+        String id = ActionIds.fullyQualified(spec);
+        if (!ActionIds.isFullyQualified(id)) return false;
+        return index().containsKey(id)
+                || liveEditorActions.contains(spec)
+                || editorIndex().containsKey(spec)
+                || editorIndex().containsKey(id);
+    }
+
     private static boolean invokeRegisteredEditorAction(String spec) {
         JTextComponent component = Editors.focused();
         if (component == null) return false;
@@ -174,10 +182,8 @@ final class NbActions {
                 continue;
             }
             if (category.isEmpty()) continue;
-            String name = entry.getNameExt();
-            if (!name.endsWith(INSTANCE)) continue;
-            String id =
-                    ActionIds.fullyQualified(name.substring(0, name.length() - INSTANCE.length()));
+            String id = ActionIds.ofInstanceFile(entry.getNameExt());
+            if (id == null) continue;
             found.putIfAbsent(id, new Registration(category, entry.getPath()));
         }
     }

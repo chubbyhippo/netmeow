@@ -14,7 +14,7 @@ live IDE, but only parts of it have been exercised from a keyboard.
 | Part | State |
 |---|---|
 | `core` — the modal engine, motions, things, selection, kill/save/yank, search, avy, grab, keypad, rc | **complete, 381 specs green** |
-| NetBeans adapter (`module`) | building and installing as an NBM, 77 specs green — **live but only partly keyboard-verified** |
+| NetBeans adapter (`module`) | building and installing as an NBM, 81 specs green — **live but only partly keyboard-verified** |
 | Bundled keymap `.netmeowrc` | present, with NetBeans action targets; `SPC i d` audits them against the running IDE |
 
 Known gaps in the adapter: which-key renders to the status line rather than a
@@ -48,7 +48,7 @@ Restart NetBeans afterwards — the userdir is read once, at boot.
 Requires JDK 21 and Maven; both are pinned in `mise.toml`.
 
 ```sh
-mise exec -- mvn verify     # compile, format check, SpotBugs, 458 specs
+mise exec -- mvn verify     # compile, format check, SpotBugs, 462 specs
 mise exec -- mvn spotless:apply   # fix formatting
 ```
 
