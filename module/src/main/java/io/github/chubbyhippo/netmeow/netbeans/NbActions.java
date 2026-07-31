@@ -44,7 +44,9 @@ final class NbActions {
 
     private static final String EDITORS_FOLDER = "Editors";
 
-    private static Map<String, String> categoryById;
+    record Registration(String category, String path) {}
+
+    private static Map<String, Registration> registrationsById;
     private static Map<String, String> editorActionPaths;
 
     private NbActions() {}
@@ -104,8 +106,8 @@ final class NbActions {
 
     static boolean invoke(String spec) {
         String id = ActionIds.fullyQualified(spec);
-        String category = index().get(id);
-        if (category != null) return invoke(category, id);
+        Registration registration = index().get(id);
+        if (registration != null) return invoke(registration.category(), id);
         if (invokeEditorAction(spec)) return true;
         return invokeRegisteredEditorAction(spec);
     }
@@ -142,7 +144,8 @@ final class NbActions {
     }
 
     static String categoryOf(String spec) {
-        return index().get(ActionIds.fullyQualified(spec));
+        Registration registration = index().get(ActionIds.fullyQualified(spec));
+        return registration == null ? null : registration.category();
     }
 
     private static boolean invokeEditorAction(String name) {
@@ -154,17 +157,17 @@ final class NbActions {
         return true;
     }
 
-    private static synchronized Map<String, String> index() {
-        if (categoryById != null) return categoryById;
-        Map<String, String> found = new LinkedHashMap<>();
+    static synchronized Map<String, Registration> index() {
+        if (registrationsById != null) return registrationsById;
+        Map<String, Registration> found = new LinkedHashMap<>();
         FileObject actions = FileUtil.getConfigFile(ACTIONS_FOLDER);
         if (actions != null) indexCategory(actions, "", found);
-        categoryById = found;
-        return categoryById;
+        registrationsById = found;
+        return registrationsById;
     }
 
     private static void indexCategory(
-            FileObject folder, String category, Map<String, String> found) {
+            FileObject folder, String category, Map<String, Registration> found) {
         for (FileObject entry : folder.getChildren()) {
             if (entry.isFolder()) {
                 indexCategory(entry, nest(category, entry.getNameExt()), found);
@@ -175,7 +178,7 @@ final class NbActions {
             if (!name.endsWith(INSTANCE)) continue;
             String id =
                     ActionIds.fullyQualified(name.substring(0, name.length() - INSTANCE.length()));
-            found.putIfAbsent(id, category);
+            found.putIfAbsent(id, new Registration(category, entry.getPath()));
         }
     }
 

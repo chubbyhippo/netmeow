@@ -586,10 +586,12 @@ desc <leader>gw git repository
 desc <leader>h hide all windows
 map <leader>h <action>(org-netbeans-core-windows-actions-ShowEditorOnlyAction)
 
-" --- SPC i — introduce / inline ---------------------------------------------
-desc <leader>i introduce / inline
+" --- SPC i — introduce / inline / ids ---------------------------------------
+desc <leader>i introduce / inline / ids
 map <leader>ic <action>(org-netbeans-modules-java-hints-introduce-IntroduceConstantAction)
 desc <leader>ic introduce constant
+map <leader>id <action>(netmeow.actionIds)
+desc <leader>id action ids + rc audit
 map <leader>if <action>(org-netbeans-modules-java-hints-introduce-IntroduceFieldAction)
 desc <leader>if introduce field
 map <leader>il <action>(org-netbeans-modules-refactoring-java-api-ui-InlineAction)

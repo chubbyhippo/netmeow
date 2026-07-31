@@ -13,9 +13,9 @@ live IDE, but only parts of it have been exercised from a keyboard.
 
 | Part | State |
 |---|---|
-| `core` — the modal engine, motions, things, selection, kill/save/yank, search, avy, grab, keypad, rc | **complete, 363 specs green** |
-| NetBeans adapter (`module`) | building and installing as an NBM, 42 specs green — **live but only partly keyboard-verified** |
-| Bundled keymap `.netmeowrc` | present, but its host-action targets still need NetBeans equivalents |
+| `core` — the modal engine, motions, things, selection, kill/save/yank, search, avy, grab, keypad, rc | **complete, 381 specs green** |
+| NetBeans adapter (`module`) | building and installing as an NBM, 75 specs green — **live but only partly keyboard-verified** |
+| Bundled keymap `.netmeowrc` | present, with NetBeans action targets; `SPC i d` audits them against the running IDE |
 
 Known gaps in the adapter: which-key renders to the status line rather than a
 floating panel, only the first selection is applied (multi-caret is not wired),
@@ -48,7 +48,7 @@ Restart NetBeans afterwards — the userdir is read once, at boot.
 Requires JDK 21 and Maven; both are pinned in `mise.toml`.
 
 ```sh
-mise exec -- mvn verify     # compile, format check, SpotBugs, 405 specs
+mise exec -- mvn verify     # compile, format check, SpotBugs, 456 specs
 mise exec -- mvn spotless:apply   # fix formatting
 ```
 
@@ -70,7 +70,10 @@ set overlay-color=#2ECC71
 ```
 
 `<action>(id)` invokes an IDE action by id; everything else names a built-in
-command.
+command. `SPC i d` writes every dispatchable id — NetBeans' global actions,
+its editor actions, and netmeow's own commands — to a text file with each
+one's category, label and shortcut, and lists any rc binding whose target the
+running IDE cannot reach.
 
 ## License
 

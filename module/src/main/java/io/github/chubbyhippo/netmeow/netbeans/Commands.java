@@ -62,6 +62,7 @@ final class Commands {
         BY_ID.put("netmeow.windmoveDown", editor -> focusDirection(editor, Dir.DOWN));
         BY_ID.put("netmeow.reloadRc", editor -> say(RcFiles.load()));
         BY_ID.put("netmeow.editRc", Commands::openUserRc);
+        BY_ID.put("netmeow.actionIds", ActionCatalog::show);
         BY_ID.put("netmeow.hideView", Commands::hideActiveView);
         BY_ID.put("netmeow.aceWindow", editor -> AceWindows.run(AceWindows.Move.FOCUS));
         BY_ID.put("netmeow.aceSwapWindow", editor -> AceWindows.run(AceWindows.Move.SWAP));
@@ -184,7 +185,7 @@ final class Commands {
         active.close();
     }
 
-    private static void say(String message) {
+    static void say(String message) {
         StatusDisplayer.getDefault().setStatusText(message);
     }
 
