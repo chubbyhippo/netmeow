@@ -10,7 +10,6 @@ NetBeans, with native ports of [avy](https://github.com/abo-abo/avy),
 | Core engine — motions, things, selection, kill/save/yank, search, avy, grab, keypad, rc | 388 specs |
 | NetBeans module (NBM) | 81 specs |
 | Keymap | bundled `.netmeowrc`; user copy at `~/.netmeowrc` |
-| State | runs in NetBeans 30; not every binding is keyboard-checked |
 
 ## Install
 
