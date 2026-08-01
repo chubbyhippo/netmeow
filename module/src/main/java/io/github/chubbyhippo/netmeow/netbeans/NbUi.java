@@ -18,10 +18,16 @@ package io.github.chubbyhippo.netmeow.netbeans;
 
 import io.github.chubbyhippo.netmeow.core.EditorPort;
 import io.github.chubbyhippo.netmeow.core.MeowState;
+import io.github.chubbyhippo.netmeow.core.RevealAt;
 import io.github.chubbyhippo.netmeow.core.UiPort;
+import java.awt.Point;
+import java.awt.Rectangle;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Logger;
+import javax.swing.JViewport;
+import javax.swing.SwingUtilities;
+import javax.swing.text.BadLocationException;
 import javax.swing.text.JTextComponent;
 import org.netbeans.api.editor.StickyWindowSupport;
 import org.openide.DialogDisplayer;
@@ -45,6 +51,32 @@ final class NbUi implements UiPort {
     @Override
     public void hint(String text) {
         StatusDisplayer.getDefault().setStatusText(text);
+    }
+
+    @Override
+    public void revealCaret(RevealAt at) {
+        if (editor == null) return;
+        JViewport viewport = (JViewport) SwingUtilities.getAncestorOfClass(JViewport.class, editor);
+        if (viewport == null) return;
+        Rectangle caret = caretRectangle();
+        if (caret == null) return;
+        int viewportHeight = viewport.getExtentSize().height;
+        int top =
+                switch (at) {
+                    case TOP -> caret.y;
+                    case BOTTOM -> caret.y + caret.height - viewportHeight;
+                    case CENTER -> caret.y + caret.height / 2 - viewportHeight / 2;
+                };
+        int maxTop = Math.max(0, editor.getHeight() - viewportHeight);
+        viewport.setViewPosition(new Point(0, Math.max(0, Math.min(top, maxTop))));
+    }
+
+    private Rectangle caretRectangle() {
+        try {
+            return editor.modelToView2D(editor.getCaretPosition()).getBounds();
+        } catch (BadLocationException e) {
+            return null;
+        }
     }
 
     @Override
