@@ -127,7 +127,7 @@ final class BlockCaret {
         }
 
         void showAt(int offset) {
-            Rectangle2D at = viewOf(offset);
+            Rectangle2D at = Editors.viewOf(editor, offset);
             if (at == null) {
                 hideBlock();
                 return;
@@ -149,15 +149,6 @@ final class BlockCaret {
         protected void paintComponent(Graphics g) {
             g.setColor(editor.getCaretColor());
             g.fillRect(0, 0, getWidth(), getHeight());
-        }
-
-        private Rectangle2D viewOf(int offset) {
-            try {
-                int clamped = Math.max(0, Math.min(offset, editor.getDocument().getLength()));
-                return editor.modelToView2D(clamped);
-            } catch (BadLocationException e) {
-                return null;
-            }
         }
     }
 

@@ -17,10 +17,13 @@
 package io.github.chubbyhippo.netmeow.netbeans;
 
 import io.github.chubbyhippo.netmeow.core.ClipboardPort;
+import java.awt.HeadlessException;
 import java.awt.Toolkit;
 import java.awt.datatransfer.Clipboard;
 import java.awt.datatransfer.DataFlavor;
 import java.awt.datatransfer.StringSelection;
+import java.awt.datatransfer.UnsupportedFlavorException;
+import java.io.IOException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -35,7 +38,11 @@ final class NbClipboard implements ClipboardPort {
             if (!clipboard.isDataFlavorAvailable(DataFlavor.stringFlavor)) return "";
             Object data = clipboard.getData(DataFlavor.stringFlavor);
             return data instanceof String text ? text : "";
-        } catch (Exception e) {
+        } catch (UnsupportedFlavorException
+                | IOException
+                | IllegalStateException
+                | HeadlessException e) {
+            LOG.log(Level.FINE, "clipboard unreadable", e);
             return "";
         }
     }

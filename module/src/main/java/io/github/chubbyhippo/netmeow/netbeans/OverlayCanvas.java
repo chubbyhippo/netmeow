@@ -25,7 +25,6 @@ import java.awt.RenderingHints;
 import java.awt.geom.Rectangle2D;
 import java.util.List;
 import javax.swing.JComponent;
-import javax.swing.text.BadLocationException;
 import javax.swing.text.JTextComponent;
 
 final class OverlayCanvas extends JComponent {
@@ -88,8 +87,8 @@ final class OverlayCanvas extends JComponent {
     private void paintBoxes(Graphics2D gfx, Color background) {
         gfx.setColor(background);
         for (int[] range : boxes) {
-            Rectangle2D from = viewOf(range[0]);
-            Rectangle2D to = viewOf(range[1]);
+            Rectangle2D from = Editors.viewOf(editor, range[0]);
+            Rectangle2D to = Editors.viewOf(editor, range[1]);
             if (from == null || to == null) continue;
             int x = (int) from.getX();
             int y = (int) from.getY();
@@ -104,7 +103,7 @@ final class OverlayCanvas extends JComponent {
         gfx.setFont(font);
         int ascent = gfx.getFontMetrics().getAscent();
         for (Label label : labels) {
-            Rectangle2D at = viewOf(label.offset());
+            Rectangle2D at = Editors.viewOf(editor, label.offset());
             if (at == null) continue;
             int width = gfx.getFontMetrics().stringWidth(label.text()) + LABEL_PAD * 2;
             int height = (int) at.getHeight();
@@ -114,15 +113,6 @@ final class OverlayCanvas extends JComponent {
             gfx.fillRect(x, y, width, height);
             gfx.setColor(foreground);
             gfx.drawString(label.text(), x + LABEL_PAD, y + ascent);
-        }
-    }
-
-    private Rectangle2D viewOf(int offset) {
-        try {
-            int clamped = Math.max(0, Math.min(offset, editor.getDocument().getLength()));
-            return editor.modelToView2D(clamped);
-        } catch (BadLocationException e) {
-            return null;
         }
     }
 }

@@ -21,7 +21,9 @@ import java.awt.Color;
 import java.awt.Component;
 import java.awt.KeyboardFocusManager;
 import java.awt.Rectangle;
+import java.awt.geom.Rectangle2D;
 import javax.swing.SwingUtilities;
+import javax.swing.text.BadLocationException;
 import javax.swing.text.JTextComponent;
 import org.netbeans.api.editor.EditorRegistry;
 import org.netbeans.api.editor.StickyWindowSupport;
@@ -58,6 +60,15 @@ final class Editors {
 
     static EditorUI ui(JTextComponent component) {
         return Utilities.getEditorUI(component);
+    }
+
+    static Rectangle2D viewOf(JTextComponent editor, int offset) {
+        try {
+            int clamped = Math.max(0, Math.min(offset, editor.getDocument().getLength()));
+            return editor.modelToView2D(clamped);
+        } catch (BadLocationException e) {
+            return null;
+        }
     }
 
     static Color toColor(Rc.Rgb rgb) {
