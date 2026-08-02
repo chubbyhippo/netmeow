@@ -177,14 +177,14 @@ final class NbUi implements UiPort {
     }
 
     @Override
-    public void modeChanged(MeowState st) {
-        ModeWidget.setMode(st.mode.name());
-        if (editor != null) Carets.apply(editor, st.mode);
+    public void modeChanged(MeowState state) {
+        ModeWidget.setMode(state.mode.name());
+        if (editor != null) Carets.apply(editor, state.mode);
     }
 
     @Override
-    public void refresh(MeowState st) {
-        ModeWidget.setMode(st.mode.name());
+    public void refresh(MeowState state) {
+        ModeWidget.setMode(state.mode.name());
     }
 
     private OverlayCanvas avyCanvas() {

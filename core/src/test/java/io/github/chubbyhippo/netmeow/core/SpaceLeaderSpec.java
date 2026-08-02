@@ -84,8 +84,8 @@ class SpaceLeaderSpec extends SpecDsl {
         given("plain text", "<caret>hello world");
         SpaceLeader.route("a tool window");
         Engine.enterKeypad(ctx());
-        assertEquals(MeowMode.KEYPAD, st.mode);
-        assertEquals(Route.KEYPAD, SpaceLeader.consume(st));
+        assertEquals(MeowMode.KEYPAD, state.mode);
+        assertEquals(Route.KEYPAD, SpaceLeader.consume(state));
         assertNotNull(SpaceLeader.routedSurface());
     }
 
@@ -94,11 +94,11 @@ class SpaceLeaderSpec extends SpecDsl {
     void keypadRoundTripsBackToInsert() {
         given("plain text", "<caret>hello world");
         whenKeys("i");
-        assertEquals(MeowMode.INSERT, st.mode);
+        assertEquals(MeowMode.INSERT, state.mode);
         Engine.enterKeypad(ctx());
-        assertEquals(MeowMode.KEYPAD, st.mode);
+        assertEquals(MeowMode.KEYPAD, state.mode);
         assertTrue(pressEsc());
-        assertEquals(MeowMode.INSERT, st.mode);
+        assertEquals(MeowMode.INSERT, state.mode);
     }
 
     @Test
@@ -111,8 +111,8 @@ class SpaceLeaderSpec extends SpecDsl {
         Engine.enterKeypad(ctx());
         Engine.handleChar(ctx(), 'm');
         Engine.handleChar(ctx(), 'b');
-        assertEquals(MeowMode.NORMAL, st.mode);
-        assertEquals(Route.PASS, SpaceLeader.consume(st));
+        assertEquals(MeowMode.NORMAL, state.mode);
+        assertEquals(Route.PASS, SpaceLeader.consume(state));
         assertNull(SpaceLeader.routedSurface());
     }
 
@@ -124,8 +124,8 @@ class SpaceLeaderSpec extends SpecDsl {
         SpaceLeader.route("a tool window");
         Engine.enterKeypad(ctx());
         assertTrue(pressEsc());
-        assertEquals(MeowMode.NORMAL, st.mode);
-        assertEquals(Route.PASS, SpaceLeader.consume(st));
+        assertEquals(MeowMode.NORMAL, state.mode);
+        assertEquals(Route.PASS, SpaceLeader.consume(state));
         assertNull(SpaceLeader.routedSurface());
     }
 
@@ -135,11 +135,11 @@ class SpaceLeaderSpec extends SpecDsl {
         given("plain text", "<caret>hello hello");
         SpaceLeader.route("a tool window");
         whenCommand("avy-goto-char-timer");
-        assertNotNull(st.avy);
-        assertEquals(Route.KEYPAD, SpaceLeader.consume(st));
+        assertNotNull(state.avy);
+        assertEquals(Route.KEYPAD, SpaceLeader.consume(state));
         assertTrue(pressEsc());
-        assertNull(st.avy);
-        assertEquals(Route.PASS, SpaceLeader.consume(st));
+        assertNull(state.avy);
+        assertEquals(Route.PASS, SpaceLeader.consume(state));
         assertNull(SpaceLeader.routedSurface());
     }
 
@@ -148,8 +148,8 @@ class SpaceLeaderSpec extends SpecDsl {
     void routedKeyPassesThroughOnceTheKeypadHasLeft() {
         given("plain text", "<caret>hello world");
         SpaceLeader.route("a tool window");
-        assertEquals(MeowMode.NORMAL, st.mode);
-        assertEquals(Route.PASS, SpaceLeader.consume(st));
+        assertEquals(MeowMode.NORMAL, state.mode);
+        assertEquals(Route.PASS, SpaceLeader.consume(state));
         assertNull(SpaceLeader.routedSurface());
     }
 

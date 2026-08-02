@@ -187,7 +187,7 @@ class ChordSpec extends SpecDsl {
         given("plain text", "<caret>hello world");
         givenRc("");
         whenKeys(" mb");
-        assertEquals(MeowMode.NORMAL, st.mode);
+        assertEquals(MeowMode.NORMAL, state.mode);
     }
 
     @Test

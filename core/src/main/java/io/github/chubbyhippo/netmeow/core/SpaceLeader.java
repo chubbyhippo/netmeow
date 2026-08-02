@@ -62,12 +62,12 @@ public final class SpaceLeader {
         return !insideEditor && !nativeSpace;
     }
 
-    public static boolean wantsKeys(MeowState st) {
-        return st.mode == MeowMode.KEYPAD || st.avy != null;
+    public static boolean wantsKeys(MeowState state) {
+        return state.mode == MeowMode.KEYPAD || state.avy != null;
     }
 
-    public static Route routeFor(MeowState st) {
-        return wantsKeys(st) ? Route.KEYPAD : Route.PASS;
+    public static Route routeFor(MeowState state) {
+        return wantsKeys(state) ? Route.KEYPAD : Route.PASS;
     }
 
     public static void route(Object surface) {
@@ -78,8 +78,8 @@ public final class SpaceLeader {
         return routed;
     }
 
-    public static Route consume(MeowState st) {
-        Route route = routeFor(st);
+    public static Route consume(MeowState state) {
+        Route route = routeFor(state);
         if (route == Route.PASS) reset();
         return route;
     }
