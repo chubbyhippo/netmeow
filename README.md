@@ -47,14 +47,17 @@ JDK 21 and Maven, both pinned in `mise.toml`.
 | `mise exec -- mvn verify` | compile, spotless, SpotBugs, 469 specs |
 | `mise exec -- mvn spotless:apply` | fix formatting |
 
-[spotless](https://github.com/diffplug/spotless) (google-java-format, AOSP
-style) and [SpotBugs](https://spotbugs.github.io/) gate `verify`, with no
-baselines or suppression files.
+| Gate on `verify` | Config |
+|---|---|
+| [spotless](https://github.com/diffplug/spotless) | google-java-format, AOSP style |
+| [SpotBugs](https://spotbugs.github.io/) | no baselines, no suppression files |
 
 ## Configuration
 
-The keymap lives in the rc file. `.netmeowrc` ships as a classpath resource;
-`~/.netmeowrc` layers over it entry by entry.
+| Layer | Where |
+|---|---|
+| Bundled defaults | `.netmeowrc`, a classpath resource |
+| Your overrides | `~/.netmeowrc`, layered over it entry by entry |
 
 ```
 nmap x meow-kill
@@ -69,9 +72,11 @@ set overlay-color=#2ECC71
 | a command name | a built-in meow command |
 | anything else | replayed meow keys |
 
-`SPC i d` writes every dispatchable id — NetBeans' global actions, its editor
-actions and netmeow's own — with each one's category, label and shortcut, and
-lists any rc binding whose target the running IDE cannot reach.
+| `SPC i d` writes | |
+|---|---|
+| Every dispatchable id | NetBeans' global actions, its editor actions, and netmeow's own |
+| Per id | its category, label and shortcut |
+| Plus | any rc binding whose target the running IDE cannot reach |
 
 ## License
 
