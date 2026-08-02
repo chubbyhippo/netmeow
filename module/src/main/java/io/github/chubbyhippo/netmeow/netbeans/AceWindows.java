@@ -17,6 +17,7 @@
 package io.github.chubbyhippo.netmeow.netbeans;
 
 import io.github.chubbyhippo.netmeow.core.AceWindow;
+import io.github.chubbyhippo.netmeow.core.Avy;
 import java.awt.Rectangle;
 import java.awt.event.KeyEvent;
 import java.util.ArrayList;
@@ -33,7 +34,6 @@ import org.openide.windows.WindowManager;
 final class AceWindows {
 
     private static final Logger LOG = Logger.getLogger(AceWindows.class.getName());
-    private static final String KEYS = "asdfghjkl";
 
     enum Move {
         FOCUS,
@@ -56,8 +56,8 @@ final class AceWindows {
 
     static List<Character> labelKeys(int count) {
         List<Character> keys = new ArrayList<>();
-        int capped = Math.min(count, KEYS.length());
-        for (int i = 0; i < capped; i++) keys.add(KEYS.charAt(i));
+        int capped = Math.min(count, Avy.KEYS.length());
+        for (int i = 0; i < capped; i++) keys.add(Avy.KEYS.charAt(i));
         return keys;
     }
 

@@ -421,7 +421,7 @@ final class AceClicks {
                     () -> selectTreeRow(tree, at),
                     () -> {
                         selectTreeRow(tree, at);
-                        showPopup(tree, rowBounds.x + 1, rowBounds.y + rowBounds.height / 2);
+                        showPopupAtRowStart(tree, rowBounds);
                     });
         }
     }
@@ -448,7 +448,7 @@ final class AceClicks {
                         list.setSelectedIndex(index);
                         list.requestFocusInWindow();
                     },
-                    () -> showPopup(list, cell.x + 1, cell.y + cell.height / 2));
+                    () -> showPopupAtRowStart(list, cell));
         }
     }
 
@@ -468,7 +468,7 @@ final class AceClicks {
                         table.changeSelection(at, 0, false, false);
                         table.requestFocusInWindow();
                     },
-                    () -> showPopup(table, cell.x + 1, cell.y + cell.height / 2));
+                    () -> showPopupAtRowStart(table, cell));
         }
     }
 
@@ -478,6 +478,10 @@ final class AceClicks {
         Rectangle onScreen = new Rectangle(local);
         onScreen.translate(parent.getLocationOnScreen().x, parent.getLocationOnScreen().y);
         return onScreen;
+    }
+
+    private static void showPopupAtRowStart(Component owner, Rectangle row) {
+        showPopup(owner, row.x + 1, row.y + row.height / 2);
     }
 
     private static void showPopup(Component component, int x, int y) {

@@ -17,6 +17,7 @@
 package io.github.chubbyhippo.netmeow.netbeans;
 
 import io.github.chubbyhippo.netmeow.core.AceResize;
+import io.github.chubbyhippo.netmeow.core.Avy;
 import io.github.chubbyhippo.netmeow.core.Windmove.Dir;
 import java.awt.Frame;
 import java.awt.Rectangle;
@@ -32,7 +33,6 @@ import org.openide.windows.WindowManager;
 final class AceResizes {
 
     private static final Logger LOG = Logger.getLogger(AceResizes.class.getName());
-    private static final String KEYS = "asdfghjkl";
 
     private AceResizes() {}
 
@@ -68,9 +68,9 @@ final class AceResizes {
         private PickDivider(List<Splits.Divider> dividers, AceOverlay overlay) {
             this.overlay = overlay;
             List<AceOverlay.Badge> badges = new ArrayList<>();
-            int count = Math.min(dividers.size(), KEYS.length());
+            int count = Math.min(dividers.size(), Avy.KEYS.length());
             for (int i = 0; i < count; i++) {
-                char key = KEYS.charAt(i);
+                char key = Avy.KEYS.charAt(i);
                 Splits.Divider divider = dividers.get(i);
                 byKey.put(key, divider);
                 badges.add(
