@@ -217,6 +217,18 @@ cmap M-\ delete-horizontal-space
 cmap M-SPC just-one-space
 cmap M-^ ms
 
+" Tranche 2, ported from ideameow: no core isearch/yank-pop command exists,
+" so C-s/C-r/M-y are host action chords, like C-l before it went core.
+" find-previous is the verified org.netbeans.editor.BaseKit editor action
+" name; clipboard-history is the same NetBeans action already bound at
+" SPC m y. C-; ace-click / M-; ace-window reuse the module commands the
+" keypad's SPC SPC / SPC w w already dispatch.
+cmap C-s <action>(find)
+cmap C-r <action>(find-previous)
+cmap M-y <action>(clipboard-history)
+cmap C-; <action>(netmeow.aceClick)
+cmap M-; <action>(netmeow.aceWindow)
+
 " ============================================================================
 " The keypad (SPC) table
 " ----------------------------------------------------------------------------

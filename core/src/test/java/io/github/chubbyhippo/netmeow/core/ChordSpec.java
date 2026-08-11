@@ -89,7 +89,19 @@ class ChordSpec extends SpecDsl {
         assertEquals("downcase-word", Chords.bindingFor(Chord.parse("M-l")).target());
         assertEquals("capitalize-word", Chords.bindingFor(Chord.parse("M-c")).target());
         assertEquals("kill-word", Chords.bindingFor(Chord.parse("M-d")).target());
-        assertEquals(32, Rc.chords().size());
+        assertEquals(37, Rc.chords().size());
+    }
+
+    @Test
+    @DisplayName(
+            "given the bundled defaults then the ported tranche-2 chords resolve to their verified action ids")
+    void bundledTranche2ChordsResolve() {
+        givenRc("");
+        assertEquals("find", Chords.bindingFor(Chord.parse("C-s")).action());
+        assertEquals("find-previous", Chords.bindingFor(Chord.parse("C-r")).action());
+        assertEquals("clipboard-history", Chords.bindingFor(Chord.parse("M-y")).action());
+        assertEquals("netmeow.aceClick", Chords.bindingFor(Chord.parse("C-;")).action());
+        assertEquals("netmeow.aceWindow", Chords.bindingFor(Chord.parse("M-;")).action());
     }
 
     @Test
@@ -119,7 +131,7 @@ class ChordSpec extends SpecDsl {
     void homeIgnoreHandsChordBack() {
         givenRc("cmap C-f ignore");
         assertNull(Chords.bindingFor(Chord.parse("C-f")));
-        assertEquals(31, Rc.chords().size());
+        assertEquals(36, Rc.chords().size());
     }
 
     @Test
