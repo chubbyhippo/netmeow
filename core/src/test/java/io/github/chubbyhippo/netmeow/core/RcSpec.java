@@ -240,6 +240,7 @@ class RcSpec extends SpecDsl {
         assertEquals("netmeow.editRc", d.keypad.get("cm").action());
         assertEquals("netmeow.reloadRc", d.keypad.get("cM").action());
         assertEquals("jump-list-last-edit", d.keypad.get("m,").action());
+        assertEquals("select-word", d.keypad.get("ee").action());
         assertTrue(d.keypad.size() > 25, "keypad table (got " + d.keypad.size() + ")");
     }
 

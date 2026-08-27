@@ -499,6 +499,9 @@ map <leader>ap <action>(org-netbeans-modules-project-ui-logical-tab-action)
 desc <leader>ap projects
 map <leader>aP <action>(org-netbeans-modules-analysis-ui-AnalysisResultTopComponent)
 desc <leader>aP inspection results
+" aI (ideameow's InspectCode, a project-wide batch analysis run) is declined,
+" not guessed: aP above only opens the Analysis Results VIEW, and no verified
+" NetBeans action id exists in this catalogue for triggering the run itself.
 map <leader>ar <action>(org-netbeans-core-io-ui-IOWindowAction)
 desc <leader>ar output
 map <leader>as <action>(org-netbeans-modules-navigator-ShowNavigatorAction)
@@ -533,6 +536,10 @@ map <leader>ea <action>(expand-all-folds)
 desc <leader>ea expand all folds
 map <leader>ec <action>(org-netbeans-modules-java-hints-introduce-IntroduceConstantAction)
 desc <leader>ec introduce constant
+" second slot for select-word, ideameow's EditorSelectWord parity — same
+" verified action already bound at ce / mr
+map <leader>ee <action>(select-word)
+desc <leader>ee select word
 map <leader>ef <action>(org-netbeans-modules-java-hints-introduce-IntroduceFieldAction)
 desc <leader>ef introduce field
 map <leader>ei <action>(org-netbeans-modules-refactoring-java-api-ui-ExtractInterfaceAction)
