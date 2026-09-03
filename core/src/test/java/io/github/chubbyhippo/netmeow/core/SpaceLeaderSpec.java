@@ -56,12 +56,6 @@ class SpaceLeaderSpec extends SpecDsl {
     }
 
     @Test
-    @DisplayName("given a tree whose space toggles then space stays native")
-    void togglingTreeIsNative() {
-        assertTrue(SpaceLeader.nativeSpace(List.of(Surface.TOGGLING_TREE)));
-    }
-
-    @Test
     @DisplayName("given a component nested in a native-space ancestor then space stays native")
     void nestedInNativeAncestorIsNative() {
         assertTrue(SpaceLeader.nativeSpace(List.of(Surface.PANEL, Surface.TERMINAL)));

@@ -27,7 +27,6 @@ public final class SpaceLeader {
         BUTTON,
         COMBO,
         CHECKBOX_LIST,
-        TOGGLING_TREE,
         TERMINAL,
         TREE,
         TABLE,
@@ -46,7 +45,6 @@ public final class SpaceLeader {
                     Surface.BUTTON,
                     Surface.COMBO,
                     Surface.CHECKBOX_LIST,
-                    Surface.TOGGLING_TREE,
                     Surface.TERMINAL);
 
     private static Object routed;
