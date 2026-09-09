@@ -101,7 +101,7 @@ class ChordSpec extends SpecDsl {
         assertEquals("find-previous", Chords.bindingFor(Chord.parse("C-r")).action());
         assertEquals("clipboard-history", Chords.bindingFor(Chord.parse("M-y")).action());
         assertEquals("netmeow.aceClick", Chords.bindingFor(Chord.parse("C-;")).action());
-        assertEquals("netmeow.aceWindow", Chords.bindingFor(Chord.parse("M-;")).action());
+        assertEquals("toggle-comment", Chords.bindingFor(Chord.parse("M-;")).action());
     }
 
     @Test
