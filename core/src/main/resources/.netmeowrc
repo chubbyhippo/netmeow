@@ -158,12 +158,19 @@ mmap q <action>(netmeow.hideView)
 " The Emacs chord layer — modifier-key bindings, like the vanilla Emacs keymap
 " ----------------------------------------------------------------------------
 " Unlike the single-key layout above, these are Ctrl-/Alt- CHORDS. They fire
-" in NORMAL and MOTION — never in INSERT, never mid-keypad — and, like meow's
-" own motions, EXTEND an active selection instead of replacing it (so C-f
-" after a selection grows it). Either spelling works: the Emacs one (C-f, M-<)
-" or the host one (control F, alt shift COMMA).
+" in every mode — NORMAL, MOTION, INSERT and even mid-keypad — and, like
+" meow's own motions, EXTEND an active selection instead of replacing it (so
+" C-f after a selection grows it). Either spelling works: the Emacs one
+" (C-f, M-<) or the host one (control F, alt shift COMMA). Firing a chord
+" while a SPC sequence is pending cancels that prefix cleanly (as if ESC had
+" been pressed) before running the chord.
 " An unbound chord stays the IDE's; to hand a bound one back, map it to
-" `ignore` — e.g. `cmap C-f ignore` restores Find.
+" `ignore` — e.g. `cmap C-f ignore` restores Find. Chords with a tree-shaped
+" meaning (C-f/b/n/p and every <action>(...) chord) also work on any focused
+" tree, list or table — the same MOTION surfaces the mmap layout above
+" reaches; chords with no tree analog (kill-word, upcase-word, ...) are
+" simply not registered there, so they stay native instead of swallowing the
+" key for nothing.
 " ============================================================================
 
 " point motions (C-f C-b C-n C-p C-a C-e, M-f M-b M-a M-e)

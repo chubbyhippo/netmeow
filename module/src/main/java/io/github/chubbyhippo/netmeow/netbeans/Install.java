@@ -72,7 +72,7 @@ public final class Install implements Runnable {
                 return Engine.escapeKey(session.ctx);
             }
             if (menuOpen()) return false;
-            Chord chord = chordOf(event);
+            Chord chord = Keystrokes.chordOf(event);
             if (chord == null) {
                 if (event.isControlDown() || event.isAltDown() || event.isMetaDown()) {
                     LOG.info(
@@ -99,21 +99,6 @@ public final class Install implements Runnable {
                 if (window.isShowing() && window.getType() == Window.Type.POPUP) return true;
             }
             return false;
-        }
-
-        private static Chord chordOf(KeyEvent event) {
-            boolean ctrl = event.isControlDown();
-            boolean alt = event.isAltDown() || event.isMetaDown();
-            if (!ctrl && !alt) return null;
-            char ch = event.getKeyChar();
-            if (ctrl && ch > 0 && ch < ' ') ch = (char) (ch + 'a' - 1);
-            if (ch == KeyEvent.CHAR_UNDEFINED || ch < ' ') {
-                int code = event.getKeyCode();
-                if (code < KeyEvent.VK_A || code > KeyEvent.VK_Z) return null;
-                ch = (char) ('a' + code - KeyEvent.VK_A);
-            }
-            boolean shift = Character.isLetter(ch) && event.isShiftDown();
-            return new Chord(ctrl, alt, shift, Character.toLowerCase(ch));
         }
     }
 }

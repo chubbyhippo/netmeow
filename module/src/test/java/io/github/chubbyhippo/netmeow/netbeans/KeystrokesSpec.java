@@ -16,10 +16,14 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 package io.github.chubbyhippo.netmeow.netbeans;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import io.github.chubbyhippo.netmeow.core.Chord;
 import java.awt.Component;
+import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
 import javax.swing.JPanel;
 import org.junit.jupiter.api.AfterEach;
@@ -63,5 +67,28 @@ class KeystrokesSpec {
         assertTrue(Keystrokes.letterOf(letter) == 'j');
         assertTrue(Keystrokes.letterOf(digit) == '3');
         assertTrue(Keystrokes.letterOf(enter) == 0);
+    }
+
+    private KeyEvent pressed(int keyCode, int modifiers) {
+        return new KeyEvent(
+                source, KeyEvent.KEY_PRESSED, 0L, modifiers, keyCode, KeyEvent.CHAR_UNDEFINED);
+    }
+
+    @Test
+    @DisplayName("given a Ctrl or Alt letter press then chordOf resolves the chord")
+    void chordOfResolvesModifiedLetters() {
+        assertEquals(
+                new Chord(true, false, false, 'f'),
+                Keystrokes.chordOf(pressed(KeyEvent.VK_F, InputEvent.CTRL_DOWN_MASK)));
+        assertEquals(
+                new Chord(false, true, false, 'b'),
+                Keystrokes.chordOf(pressed(KeyEvent.VK_B, InputEvent.ALT_DOWN_MASK)));
+    }
+
+    @Test
+    @DisplayName("given no modifier or a non-letter key then chordOf is null")
+    void chordOfIsNullWithoutAModifierOrLetter() {
+        assertNull(Keystrokes.chordOf(pressed(KeyEvent.VK_F, 0)));
+        assertNull(Keystrokes.chordOf(pressed(KeyEvent.VK_ENTER, InputEvent.CTRL_DOWN_MASK)));
     }
 }

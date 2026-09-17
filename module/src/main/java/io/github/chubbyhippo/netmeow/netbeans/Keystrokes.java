@@ -16,6 +16,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 package io.github.chubbyhippo.netmeow.netbeans;
 
+import io.github.chubbyhippo.netmeow.core.Chord;
 import java.awt.event.KeyEvent;
 
 final class Keystrokes {
@@ -45,5 +46,20 @@ final class Keystrokes {
         }
         char typed = event.getKeyChar();
         return typed == KeyEvent.CHAR_UNDEFINED || typed < ' ' ? 0 : typed;
+    }
+
+    static Chord chordOf(KeyEvent event) {
+        boolean ctrl = event.isControlDown();
+        boolean alt = event.isAltDown() || event.isMetaDown();
+        if (!ctrl && !alt) return null;
+        char ch = event.getKeyChar();
+        if (ctrl && ch > 0 && ch < ' ') ch = (char) (ch + 'a' - 1);
+        if (ch == KeyEvent.CHAR_UNDEFINED || ch < ' ') {
+            int code = event.getKeyCode();
+            if (code < KeyEvent.VK_A || code > KeyEvent.VK_Z) return null;
+            ch = (char) ('a' + code - KeyEvent.VK_A);
+        }
+        boolean shift = Character.isLetter(ch) && event.isShiftDown();
+        return new Chord(ctrl, alt, shift, Character.toLowerCase(ch));
     }
 }

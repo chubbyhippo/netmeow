@@ -16,6 +16,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 package io.github.chubbyhippo.netmeow.netbeans;
 
+import io.github.chubbyhippo.netmeow.core.Chord;
 import io.github.chubbyhippo.netmeow.core.Engine;
 import io.github.chubbyhippo.netmeow.core.MeowMode;
 import io.github.chubbyhippo.netmeow.core.SpaceLeader;
@@ -37,16 +38,29 @@ final class TreeKeys {
     private TreeKeys() {}
 
     static boolean handle(KeyEvent event) {
-        if (event.isControlDown() || event.isAltDown() || event.isMetaDown()) return false;
         Component focused = KeyboardFocusManager.getCurrentKeyboardFocusManager().getFocusOwner();
         if (focused == null || focused instanceof JTextComponent) return false;
         if (event.getKeyCode() == KeyEvent.VK_ESCAPE) return escapeToEditor(focused);
-        if (keypadTakes(event)) return true;
+        boolean modified = event.isControlDown() || event.isAltDown() || event.isMetaDown();
+        if (!modified && keypadTakes(event)) return true;
         if (!Trees.acceptsMotion(focused)) return false;
+        if (modified) return handleChord(event, focused);
         char key = Keystrokes.letterOf(event);
         if (key == 0 || !TreeMeow.boundChars().contains(key)) return false;
         List<String> targets = new ArrayList<>();
         TreeMeow.dispatch(targets::add, key);
+        return runTargets(targets, focused);
+    }
+
+    private static boolean handleChord(KeyEvent event, Component focused) {
+        Chord chord = Keystrokes.chordOf(event);
+        if (chord == null) return false;
+        List<String> targets = new ArrayList<>();
+        TreeMeow.dispatchChord(targets::add, chord);
+        return runTargets(targets, focused);
+    }
+
+    private static boolean runTargets(List<String> targets, Component focused) {
         if (targets.isEmpty()) return false;
         if (!inToolWindow(focused) && !targets.stream().allMatch(Commands::isTreeCommand)) {
             return false;
